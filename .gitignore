@@ -1,3 +1,70 @@
-.venv
+# Ambientes virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# Byte-compiled / cache
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Configurações e credenciais locais
+.env
+.env.*
+.env.local
+!.env.example
 .github/copilot-instructions.md
+
+# IDEs / editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Empacotamento / build
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Testes / cobertura
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Ferramentas estáticas / caches
+.mypy_cache/
+.cache/
+tox/
+.tox/
+
+# Banco de dados local / arquivos temporários
+*.db
+*.sqlite3
+*.sqlite
+*.log
+
+# Certificados / chaves
+*.pem
+*.key
+*.crt
+
+# Docker (overrides e credenciais locais)
+docker-compose.override.yml
+
+# Dependências front-end (se houver)
+node_modules/
+
+# Outros artefatos
+target/
+*.bak
+*.tmp

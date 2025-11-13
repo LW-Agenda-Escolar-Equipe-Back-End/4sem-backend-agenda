@@ -1,0 +1,62 @@
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+# from fastapi.middleware.cors import CORSMiddleware
+# import os
+
+from .database import engine, Base
+from . import models  # noqa: F401 - Necessário para registrar os modelos no SQLAlchemy
+from .routers import health
+
+# ============================================================================
+# INICIALIZAÇÃO DO BANCO DE DADOS
+# ============================================================================
+
+# [PERIGO] Criar tabelas automaticamente (descomentar uma única vez para inicializar)
+# Base.metadata.create_all(bind=engine)
+
+# ============================================================================
+# CONFIGURAÇÃO DA APLICAÇÃO
+# ============================================================================
+
+app = FastAPI(
+    title="API Agenda Acadêmica",
+    version="1.0.0",
+    description="API para gerenciamento de agenda acadêmica de alunos",
+)
+
+# CORS
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # Substituir por domínios específicos em produção
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+
+# ============================================================================
+# TEMPLATES E RECURSOS ESTÁTICOS
+# ============================================================================
+
+templates = Jinja2Templates(directory="templates")
+
+# [EXEMPLO] Servir arquivos estáticos (CSS, JS, imagens)
+# if os.path.exists("static"):
+#     app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# ============================================================================
+# ROUTERS
+# ============================================================================
+
+app.include_router(health.router, prefix="/api/v1/health")
+
+# ============================================================================
+# ROTAS PRINCIPAIS
+# ============================================================================
+
+@app.get("/", tags=["Health"])
+def homepage(request: Request):
+    """Página inicial - links para documentação."""
+    return templates.TemplateResponse("index.html", {"request": request})

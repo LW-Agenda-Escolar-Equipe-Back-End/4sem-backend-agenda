@@ -48,13 +48,6 @@ NotaDecimal = Annotated[Optional[Decimal], Field(None, max_digits=4, decimal_pla
 # ENUMS - Valores predefinidos
 # ============================================================================
 
-class TipoDataEnum(IntEnum):
-    """Tipos de datas no calendário acadêmico"""
-    LETIVO = 1
-    FALTA = 2
-    NAO_LETIVO = 3
-
-
 class DiaSemanaEnum(IntEnum):
     """Dias da semana"""
     SEGUNDA = 1
@@ -265,7 +258,7 @@ class DisciplinaDocente(BaseSchema):
 class CalendarioCreate(BaseSchema):
     ra: RA
     data_evento: date
-    id_tipo_data: TipoDataEnum
+    id_tipo_data: int
 
     @field_validator("ra")
     @classmethod
@@ -276,7 +269,7 @@ class CalendarioCreate(BaseSchema):
 class CalendarioUpdate(BaseSchema):
     ra: Optional[RA] = None
     data_evento: Optional[date] = None
-    id_tipo_data: Optional[TipoDataEnum] = None
+    id_tipo_data: Optional[int] = None
 
     @field_validator("ra")
     @classmethod
@@ -288,7 +281,7 @@ class Calendario(BaseSchema):
     id_data_evento: int
     ra: RA
     data_evento: date
-    id_tipo_data: TipoDataEnum
+    id_tipo_data: int
 
     @field_validator("ra")
     @classmethod

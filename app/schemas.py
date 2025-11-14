@@ -106,7 +106,7 @@ class TipoDataCreate(BaseSchema):
 
 
 class TipoData(BaseSchema):
-    id_tipo_data: TipoDataEnum
+    id_tipo_data: int
     nome: str = Field(..., min_length=1, max_length=10)
 
 

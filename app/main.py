@@ -21,7 +21,7 @@ from .routers import health
 
 app = FastAPI(
     title="API Agenda Acadêmica",
-    version="1.0.0",
+    version="1.0.1",
     description="API para gerenciamento de agenda acadêmica de alunos",
 )
 

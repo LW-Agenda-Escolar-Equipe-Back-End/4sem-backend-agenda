@@ -116,14 +116,6 @@ class CursoDisciplina(Base):
     disciplina = relationship("Disciplina", back_populates="cursos")
 
 
-class Turno(Base):
-    """Modelo de Turno (Matutino, Vespertino, Noturno)"""
-    __tablename__ = "turno"
-
-    id_turno = Column(Integer, primary_key=True, index=True)
-    nome = Column(String(10), nullable=False)
-
-
 class Horario(Base):
     """Modelo de Horário de Aulas"""
     __tablename__ = "horario"

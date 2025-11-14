@@ -20,12 +20,6 @@ CREATE TABLE IF NOT EXISTS tipo_data (
     nome VARCHAR(10) NOT NULL
 );
 
--- Tabela de Turnos (Matutino, Vespertino, Noturno)
-CREATE TABLE IF NOT EXISTS turno (
-    id_turno SERIAL PRIMARY KEY,
-    nome VARCHAR(10) NOT NULL
-);
-
 -- Tabela de Cursos
 CREATE TABLE IF NOT EXISTS curso (
     id_curso SERIAL PRIMARY KEY,
@@ -185,8 +179,3 @@ CREATE INDEX IF NOT EXISTS idx_discente_email ON discente(email);
 INSERT INTO tipo_data (nome) VALUES ('Letivo') ON CONFLICT DO NOTHING;
 INSERT INTO tipo_data (nome) VALUES ('Falta') ON CONFLICT DO NOTHING;
 INSERT INTO tipo_data (nome) VALUES ('N.Letivo') ON CONFLICT DO NOTHING;
-
--- Inserir turnos padrão
-INSERT INTO turno (nome) VALUES ('Matutino') ON CONFLICT DO NOTHING;
-INSERT INTO turno (nome) VALUES ('Vespertino') ON CONFLICT DO NOTHING;
-INSERT INTO turno (nome) VALUES ('Noturno') ON CONFLICT DO NOTHING;

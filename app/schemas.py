@@ -55,13 +55,6 @@ class TipoDataEnum(IntEnum):
     NAO_LETIVO = 3
 
 
-class TurnoEnum(IntEnum):
-    """Turnos de aula"""
-    MATUTINO = 1
-    VESPERTINO = 2
-    NOTURNO = 3
-
-
 class DiaSemanaEnum(IntEnum):
     """Dias da semana"""
     SEGUNDA = 1
@@ -70,12 +63,6 @@ class DiaSemanaEnum(IntEnum):
     QUINTA = 4
     SEXTA = 5
     SABADO = 6
-
-
-class SemestreEnum(IntEnum):
-    """Semestres do ano"""
-    PRIMEIRO = 1
-    SEGUNDO = 2
 
 
 # ============================================================================
@@ -120,15 +107,6 @@ class TipoDataCreate(BaseSchema):
 
 class TipoData(BaseSchema):
     id_tipo_data: TipoDataEnum
-    nome: str = Field(..., min_length=1, max_length=10)
-
-
-class TurnoCreate(BaseSchema):
-    nome: str = Field(..., min_length=1, max_length=10)
-
-
-class Turno(BaseSchema):
-    id_turno: TurnoEnum
     nome: str = Field(..., min_length=1, max_length=10)
 
 

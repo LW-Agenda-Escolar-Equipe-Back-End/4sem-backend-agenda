@@ -27,7 +27,7 @@ def criar_tipo_data(
     Criar novo tipo de data.
     
     **Parâmetros:**
-    - `nome`: Nome do tipo de data (ex: "Letivo", "Falta", "Não Letivo")
+    - `nome`: Nome do tipo de data (ex: "Falta", "Não Letivo", "Letivo")
     """
     try:
         db_tipo_data = crud.criar_tipo_data(db, tipo_data)

@@ -144,9 +144,8 @@ def criar_evento_calendario(
     **Parâmetros:**
     - `ra`: RA do usuário (13 dígitos)
     - `data_evento`: Data do evento (formato: YYYY-MM-DD)
-    - `id_tipo_data`: Tipo de data (1=Letivo, 2=Falta, 3=Não Letivo)
+    - `id_tipo_data`: Tipo de data (1=Falta, 2=Não Letivo, 3=Letivo)
     """
-    # Validações
     validar_usuario_existe(db, calendario.ra)
     validar_tipo_data_existe(db, calendario.id_tipo_data)
     validar_evento_duplicado(db, calendario.ra, calendario.data_evento)
@@ -252,7 +251,7 @@ def obter_evento_por_data(
 
 @router.get("/tipo/{id_tipo_data}", response_model=schemas.GenericListResponse[schemas.Calendario])
 def listar_eventos_por_tipo(
-    id_tipo_data: int = Path(..., ge=1, le=3, description="Tipo de data (1=Letivo, 2=Falta, 3=Não Letivo)"),
+    id_tipo_data: int = Path(..., ge=1, le=3, description="Tipo de data (1=Falta, 2=Não Letivo, 3=Letivo)"),
     ra: str = Query(..., min_length=13, max_length=13, description="RA do usuário"),
     skip: int = Query(0, ge=0, description="Paginação: saltar registros"),
     limit: int = Query(100, ge=1, le=1000, description="Paginação: limite de registros"),
@@ -261,8 +260,10 @@ def listar_eventos_por_tipo(
     """
     Listar eventos de calendário filtrados por tipo de data.
     
+    Retorna 404 se nenhum evento for encontrado para o tipo especificado.
+    
     **Parâmetros:**
-    - `id_tipo_data`: Tipo de data (1=Letivo, 2=Falta, 3=Não Letivo) (no path) - obrigatório
+    - `id_tipo_data`: Tipo de data (1=Falta, 2=Não Letivo, 3=Letivo) (no path) - obrigatório
     - `ra`: RA do usuário (13 dígitos, query param) - obrigatório
     - `skip`: Número de registros a saltar (padrão: 0)
     - `limit`: Número máximo de registros (padrão: 100, máximo: 1000)

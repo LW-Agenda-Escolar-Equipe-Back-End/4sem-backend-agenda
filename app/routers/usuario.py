@@ -255,14 +255,19 @@ def listar_usuarios_por_curso(
 	)
 
 
-@router.put("/{id_usuario}", response_model=schemas.GenericResponse[schemas.Usuario])
+@router.put("/", response_model=schemas.GenericResponse[schemas.Usuario])
 def atualizar_usuario(
-	id_usuario: int,
 	usuario: schemas.UsuarioUpdate,
+	usuario_autenticado: models.Usuario = Depends(verificar_token),
 	db: Session = Depends(get_db),
 ):
 	"""
-	Atualizar usuário (apenas campos fornecidos no body).
+	Atualizar dados do usuário autenticado.
+	
+	**Requer token JWT no header:**
+	```
+	Authorization: Bearer <seu_token_jwt>
+	```
 	
 	**Campos Atualizáveis:**
 	- `nome`: Nome do usuário (1-50 caracteres)
@@ -275,12 +280,8 @@ def atualizar_usuario(
 	- `modulo`: Módulo (1-12)
 	- `bimestre`: Bimestre
 	"""
-	db_usuario = crud.obter_usuario(db, id_usuario)
-	if not db_usuario:
-		raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
 	try:
-		db_atualizado = crud.atualizar_usuario(db, id_usuario, usuario)
+		db_atualizado = crud.atualizar_usuario(db, usuario_autenticado.id_usuario, usuario)
 		return schemas.GenericResponse(
 			data=db_atualizado,
 			success=True,
@@ -290,14 +291,19 @@ def atualizar_usuario(
 		raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.patch("/{id_usuario}", response_model=schemas.GenericResponse[schemas.Usuario])
+@router.patch("/", response_model=schemas.GenericResponse[schemas.Usuario])
 def atualizar_usuario_parcial(
-	id_usuario: int,
 	usuario: schemas.UsuarioUpdate,
+	usuario_autenticado: models.Usuario = Depends(verificar_token),
 	db: Session = Depends(get_db),
 ):
 	"""
-	Atualizar usuário parcialmente (apenas campos fornecidos no body).
+	Atualizar usuário autenticado parcialmente (apenas campos fornecidos no body).
+	
+	**Requer token JWT no header:**
+	```
+	Authorization: Bearer <seu_token_jwt>
+	```
 	
 	**Campos Atualizáveis:**
 	- `nome`: Nome do usuário (1-50 caracteres)
@@ -310,12 +316,8 @@ def atualizar_usuario_parcial(
 	- `modulo`: Módulo (1-12)
 	- `bimestre`: Bimestre
 	"""
-	db_usuario = crud.obter_usuario(db, id_usuario)
-	if not db_usuario:
-		raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
 	try:
-		db_atualizado = crud.atualizar_usuario(db, id_usuario, usuario)
+		db_atualizado = crud.atualizar_usuario(db, usuario_autenticado.id_usuario, usuario)
 		return schemas.GenericResponse(
 			data=db_atualizado,
 			success=True,
@@ -325,21 +327,22 @@ def atualizar_usuario_parcial(
 		raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete("/{id_usuario}", response_model=schemas.GenericResponse[dict])
+@router.delete("/", response_model=schemas.GenericResponse[dict])
 def deletar_usuario(
-	id_usuario: int,
+	usuario_autenticado: models.Usuario = Depends(verificar_token),
 	db: Session = Depends(get_db),
 ):
 	"""
-	Deletar um usuário por ID.
+	Deletar a conta do usuário autenticado.
+	
+	**Requer token JWT no header:**
+	```
+	Authorization: Bearer <seu_token_jwt>
+	```
 	"""
-	db_usuario = crud.obter_usuario(db, id_usuario)
-	if not db_usuario:
-		raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
-	if crud.deletar_usuario(db, id_usuario):
+	if crud.deletar_usuario(db, usuario_autenticado.id_usuario):
 		return schemas.GenericResponse(
-			data={"id_deletado": id_usuario},
+			data={"id_deletado": usuario_autenticado.id_usuario},
 			success=True,
 			message="Usuário deletado com sucesso",
 		)

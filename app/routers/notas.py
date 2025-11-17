@@ -84,3 +84,20 @@ def atualizar_nota(
         success=True,
         message="Nota atualizada com sucesso."
     )
+
+@router.delete("/{idNota}", response_model=schemas.GenericResponse[schemas.Nota])
+def deletar_nota(idNota: int, db: Session = Depends(get_db)):
+
+    nota = db.query(models.Nota).filter(models.Nota.id_nota == idNota).first()
+
+    if not nota:
+        raise HTTPException(status_code=404, detail="Nota não encontrada")
+
+    db.delete(nota)
+    db.commit()
+
+    return schemas.GenericResponse(
+        data=nota,
+        success=True,
+        message="Nota deletada com sucesso."
+    )

@@ -216,9 +216,11 @@ class Usuario(BaseSchema):
     email: EmailUsuario
     username: Username
     id_instituicao: int
+    nome_instituicao: Optional[str] = None
     dt_nascimento: Optional[date] = None
     tel_celular: Telefone = None
     id_curso: Optional[int] = None
+    nome_curso: Optional[str] = None
     modulo: Optional[int] = Field(1, ge=1, le=12)
     bimestre: Optional[int] = None
 

@@ -16,6 +16,25 @@ router = APIRouter(
 )
 
 
+# Função utilitária para anexar nomes de curso/instituição ao objeto usuário
+def _attach_nomes_usuario(usuario_obj):
+	try:
+		if hasattr(usuario_obj, "instituicao") and usuario_obj.instituicao:
+			usuario_obj.nome_instituicao = usuario_obj.instituicao.nome
+		else:
+			usuario_obj.nome_instituicao = None
+
+		if hasattr(usuario_obj, "curso") and usuario_obj.curso:
+			usuario_obj.nome_curso = usuario_obj.curso.nome
+		else:
+			usuario_obj.nome_curso = None
+	except Exception:
+		# não falhar por causa de relacionamento ausente
+		usuario_obj.nome_instituicao = None
+		usuario_obj.nome_curso = None
+	return usuario_obj
+
+
 # ============================================================================
 # ENDPOINTS - USUÁRIOS
 # ============================================================================
@@ -138,6 +157,7 @@ def criar_usuario(
 	"""
 	try:
 		db_usuario = crud.criar_usuario(db, usuario)
+		_attach_nomes_usuario(db_usuario)
 		return schemas.GenericResponse(
 			data=db_usuario,
 			success=True,
@@ -150,6 +170,7 @@ def criar_usuario(
 @router.get("/me", response_model=schemas.GenericResponse[schemas.Usuario], tags=["Autenticação"])
 def obter_perfil_autenticado(
 	usuario_autenticado: models.Usuario = Depends(verificar_token),
+	db: Session = Depends(get_db),
 ):
 	"""
 	Obter dados do usuário autenticado.
@@ -159,7 +180,10 @@ def obter_perfil_autenticado(
 	Authorization: Bearer <seu_token_jwt>
 	```
 	"""
-	return schemas.GenericResponse(data=usuario_autenticado, success=True)
+	# Recarrega usuário do DB para garantir relacionamentos
+	db_usuario = crud.obter_usuario(db, usuario_autenticado.id_usuario)
+	_attach_nomes_usuario(db_usuario)
+	return schemas.GenericResponse(data=db_usuario, success=True)
 
 
 @router.get("/", response_model=schemas.GenericListResponse[schemas.Usuario])
@@ -172,6 +196,8 @@ def listar_usuarios(
 	Listar todos os usuários com paginação.
 	"""
 	usuarios = crud.obter_usuarios(db, skip, limit)
+	for u in usuarios:
+		_attach_nomes_usuario(u)
 	total = db.query(models.Usuario).count()
 
 	return schemas.GenericListResponse(
@@ -195,6 +221,8 @@ def obter_usuario(
 	if not db_usuario:
 		raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
+	_attach_nomes_usuario(db_usuario)
+
 	return schemas.GenericResponse(data=db_usuario, success=True)
 
 
@@ -210,6 +238,8 @@ def obter_usuario_por_ra(
 	if not db_usuario:
 		raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
+	_attach_nomes_usuario(db_usuario)
+
 	return schemas.GenericResponse(data=db_usuario, success=True)
 
 
@@ -224,6 +254,8 @@ def listar_usuarios_por_instituicao(
 	Listar usuários de uma instituição.
 	"""
 	usuarios = crud.obter_usuarios_por_instituicao(db, id_instituicao, skip, limit)
+	for u in usuarios:
+		_attach_nomes_usuario(u)
 	total = db.query(models.Usuario).filter(models.Usuario.id_instituicao == id_instituicao).count()
 
 	return schemas.GenericListResponse(
@@ -246,6 +278,8 @@ def listar_usuarios_por_curso(
 	Listar usuários de um curso.
 	"""
 	usuarios = crud.obter_usuarios_por_curso(db, id_curso, skip, limit)
+	for u in usuarios:
+		_attach_nomes_usuario(u)
 	total = db.query(models.Usuario).filter(models.Usuario.id_curso == id_curso).count()
 
 	return schemas.GenericListResponse(
@@ -284,6 +318,7 @@ def atualizar_usuario(
 	"""
 	try:
 		db_atualizado = crud.atualizar_usuario(db, usuario_autenticado.id_usuario, usuario)
+		_attach_nomes_usuario(db_atualizado)
 		return schemas.GenericResponse(
 			data=db_atualizado,
 			success=True,
@@ -320,6 +355,7 @@ def atualizar_usuario_parcial(
 	"""
 	try:
 		db_atualizado = crud.atualizar_usuario(db, usuario_autenticado.id_usuario, usuario)
+		_attach_nomes_usuario(db_atualizado)
 		return schemas.GenericResponse(
 			data=db_atualizado,
 			success=True,

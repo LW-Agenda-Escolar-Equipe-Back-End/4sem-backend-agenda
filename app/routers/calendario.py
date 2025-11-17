@@ -169,16 +169,23 @@ def listar_eventos_calendario(
     """
     Listar todos os eventos de calendário do usuário.
     
+    Retorna 404 se nenhum evento for encontrado.
+    
     **Parâmetros:**
     - `ra`: RA do usuário (13 dígitos) - obrigatório
     - `skip`: Número de registros a saltar (padrão: 0)
     - `limit`: Número máximo de registros (padrão: 100, máximo: 1000)
     """
-    # Validações
     validar_usuario_existe(db, ra)
     
     eventos = crud.obter_calendarios_por_usuario(db, ra, skip, limit)
     total = db.query(models.Calendario).filter(models.Calendario.ra == ra).count()
+    
+    if total == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Nenhum evento encontrado para o RA {ra}"
+        )
     
     return schemas.GenericListResponse(
         data=eventos,
@@ -239,6 +246,12 @@ def obter_evento_por_data(
         models.Calendario.data_evento == data_parsed
     ).first()
     
+    if evento is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Nenhum evento encontrado para o RA {ra} na data {data_evento}"
+        )
+    
     return schemas.GenericResponse(
         data=evento,
         success=True
@@ -273,6 +286,13 @@ def listar_eventos_por_tipo(
         models.Calendario.ra == ra,
         models.Calendario.id_tipo_data == id_tipo_data
     ).count()
+    
+    if total == 0:
+        tipo_nome = {1: "Falta", 2: "Não Letivo", 3: "Letivo"}.get(id_tipo_data, f"Tipo {id_tipo_data}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Nenhum evento do tipo '{tipo_nome}' encontrado para o RA {ra}"
+        )
     
     return schemas.GenericListResponse(
         data=eventos,

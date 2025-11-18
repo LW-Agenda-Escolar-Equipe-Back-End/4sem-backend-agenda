@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from ..database import get_db
 from .. import crud, models, schemas
+from ..auth import verificar_token
 
 # ============================================================================
 # CONFIGURAÇÃO DO ROUTER
@@ -14,169 +16,177 @@ router = APIRouter(
 )
 
 # ============================================================================
-# FUNÇÕES AUXILIARES DE VALIDAÇÃO
+# CONSTANTES E MAPEAMENTOS
 # ============================================================================
 
-def validar_usuario_existe(db: Session, ra: str) -> models.Usuario:
-    """
-    Valida se usuário com RA informado existe.
-    
-    Args:
-        db: Sessão do banco de dados
-        ra: RA do usuário
-        
-    Returns:
-        models.Usuario: Usuário encontrado
-        
-    Raises:
-        HTTPException: 404 se usuário não encontrado
-    """
-    usuario = crud.obter_usuario_por_ra(db, ra)
-    if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Usuário com RA {ra} não encontrado"
+TIPO_DATA_NOMES = {1: "Falta", 2: "Não Letivo", 3: "Letivo"}
+
+# ============================================================================
+# EXCEÇÕES CUSTOMIZADAS (Early Return Pattern)
+# ============================================================================
+
+class CalendarioNotFound(HTTPException):
+    """Evento de calendário não encontrado"""
+    def __init__(self):
+        super().__init__(status_code=404, detail="Evento do calendário não encontrado")
+
+
+class EventoDuplicado(HTTPException):
+    """Evento duplicado para mesma data e RA"""
+    def __init__(self, ra: str, data: str):
+        super().__init__(
+            status_code=409,
+            detail=f"Já existe um evento registrado para o RA {ra} na data {data}"
         )
-    return usuario
 
 
-def validar_tipo_data_existe(db: Session, id_tipo_data: int) -> models.TipoData:
-    """
-    Valida se tipo de data informado existe.
-    
-    Args:
-        db: Sessão do banco de dados
-        id_tipo_data: ID do tipo de data
-        
-    Returns:
-        models.TipoData: Tipo de data encontrado
-        
-    Raises:
-        HTTPException: 400 se tipo de data não existe
-    """
-    tipo_data = crud.obter_tipo_data(db, id_tipo_data)
-    if not tipo_data:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Tipo de data {id_tipo_data} não existe"
-        )
-    return tipo_data
+class TipoDataInvalido(HTTPException):
+    """Tipo de data inválido"""
+    def __init__(self, id_tipo_data: int):
+        super().__init__(status_code=400, detail=f"Tipo de data {id_tipo_data} não existe")
 
 
-def validar_calendario_existe(db: Session, id_data_evento: int) -> models.Calendario:
-    """
-    Valida se evento de calendário informado existe.
-    
-    Args:
-        db: Sessão do banco de dados
-        id_data_evento: ID do evento de calendário
-        
-    Returns:
-        models.Calendario: Evento encontrado
-        
-    Raises:
-        HTTPException: 404 se evento não encontrado
-    """
-    db_evento = crud.obter_calendario(db, id_data_evento)
-    if not db_evento:
-        raise HTTPException(
-            status_code=404,
-            detail="Evento do calendário não encontrado"
-        )
-    return db_evento
+class FormatoDataInvalido(HTTPException):
+    """Formato de data inválido"""
+    def __init__(self):
+        super().__init__(status_code=400, detail="Formato de data inválido. Use YYYY-MM-DD")
 
 
-def validar_evento_duplicado(
+class PermissaoNegada(HTTPException):
+    """Usuário não tem permissão"""
+    def __init__(self):
+        super().__init__(status_code=403, detail="Você não tem permissão para acessar este evento")
+
+
+# ============================================================================
+# VALIDADORES (Responsabilidade Única)
+# ============================================================================
+
+def _validar_tipo_data_existe(db: Session, id_tipo_data: int) -> None:
+    """Valida se tipo de data existe. Lança exceção se inválido."""
+    if not crud.obter_tipo_data(db, id_tipo_data):
+        raise TipoDataInvalido(id_tipo_data)
+
+
+def _validar_evento_nao_duplicado(
     db: Session,
     ra: str,
     data_evento,
-    id_data_evento_atual: int | None = None
+    excluir_id: int | None = None
 ) -> None:
-    """
-    Valida se já existe evento para a combinação de RA e data.
-    
-    Args:
-        db: Sessão do banco de dados
-        ra: RA do usuário (string)
-        data_evento: Data do evento
-        id_data_evento_atual: ID do evento atual (para exclusão na verificação)
-        
-    Raises:
-        HTTPException: 409 se evento já existe
-    """
-    from typing import cast
-    
-    ra_str = cast(str, ra)
-    
+    """Valida se evento já existe para esta combinação RA+data."""
     query = db.query(models.Calendario).filter(
-        models.Calendario.ra == ra_str,
+        models.Calendario.ra == ra,
         models.Calendario.data_evento == data_evento
     )
     
-    if id_data_evento_atual is not None:
-        query = query.filter(models.Calendario.id_data_evento != id_data_evento_atual)
+    if excluir_id:
+        query = query.filter(models.Calendario.id_data_evento != excluir_id)
     
-    evento_duplicado = query.first()
+    if query.first():
+        raise EventoDuplicado(ra, str(data_evento))
+
+
+def _validar_evento_pertence_usuario(db: Session, id_evento: int, ra: str) -> models.Calendario:
+    """Valida se evento existe e pertence ao usuário. Retorna evento ou lança exceção."""
+    evento = crud.obter_calendario(db, id_evento)
     
-    if evento_duplicado:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Já existe um evento registrado para o RA {ra_str} na data {data_evento}"
-        )
+    if not evento:
+        raise CalendarioNotFound()
+    
+    if str(evento.ra) != str(ra):
+        raise PermissaoNegada()
+    
+    return evento
+
+
+def _parsear_data(data_str: str):
+    """Parse data em formato YYYY-MM-DD. Lança FormatoDataInvalido se falhar."""
+    try:
+        return datetime.strptime(data_str, "%Y-%m-%d").date()
+    except ValueError:
+        raise FormatoDataInvalido()
 
 # ============================================================================
-# ENDPOINTS - CALENDÁRIO
+# ENDPOINTS - CREATE
 # ============================================================================
-
 
 @router.post("/", response_model=schemas.GenericResponse[schemas.Calendario], status_code=201)
 def criar_evento_calendario(
     calendario: schemas.CalendarioCreate,
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
     db: Session = Depends(get_db)
 ):
     """
     Criar novo evento no calendário acadêmico.
     
-    **Restrição:** Apenas um evento por data e usuário é permitido.
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
-    **Parâmetros:**
-    - `ra`: RA do usuário (13 dígitos)
-    - `data_evento`: Data do evento (formato: YYYY-MM-DD)
-    - `id_tipo_data`: Tipo de data (1=Falta, 2=Não Letivo, 3=Letivo)
+    **Body:**
+    - `data_evento` (date): Data do evento no formato YYYY-MM-DD
+    - `id_tipo_data` (int): Tipo de data (1=Falta, 2=Não Letivo, 3=Letivo)
+    
+    **Restrições:**
+    - Apenas um evento por combinação de RA e data é permitido
+    - RA é obtido automaticamente do token autenticado
+    
+    **Respostas:**
+    - 201: Evento criado com sucesso
+    - 400: Tipo de data inválido
+    - 409: Evento já existe para esta data
+    - 401: Token ausente ou inválido
     """
-    validar_usuario_existe(db, calendario.ra)
-    validar_tipo_data_existe(db, calendario.id_tipo_data)
-    validar_evento_duplicado(db, calendario.ra, calendario.data_evento)
+    ra = str(usuario_autenticado.ra)
     
-    try:
-        db_calendario = crud.criar_calendario(db, calendario)
-        return schemas.GenericResponse(
-            data=db_calendario,
-            success=True,
-            message="Evento do calendário criado com sucesso"
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Validações
+    _validar_tipo_data_existe(db, calendario.id_tipo_data)
+    _validar_evento_nao_duplicado(db, ra, calendario.data_evento)
+    
+    # Preparar dados
+    evento_data = calendario.model_dump()
+    evento_data['ra'] = ra
+    
+    # Criar
+    db_evento = models.Calendario(**evento_data)
+    db.add(db_evento)
+    db.commit()
+    db.refresh(db_evento)
+    
+    return schemas.GenericResponse(
+        data=db_evento,
+        success=True,
+        message="Evento do calendário criado com sucesso"
+    )
 
+
+# ============================================================================
+# ENDPOINTS - READ
+# ============================================================================
 
 @router.get("/", response_model=schemas.GenericListResponse[schemas.Calendario])
 def listar_eventos_calendario(
-    ra: str = Query(..., min_length=13, max_length=13, description="RA do usuário"),
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
     skip: int = Query(0, ge=0, description="Paginação: saltar registros"),
-    limit: int = Query(100, ge=1, le=1000, description="Paginação: limite de registros"),
+    limit: int = Query(100, ge=1, le=1000, description="Limite de registros"),
     db: Session = Depends(get_db)
 ):
     """
-    Listar todos os eventos de calendário do usuário.
+    Listar todos os eventos do calendário do usuário autenticado.
     
-    Retorna 404 se nenhum evento for encontrado.
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
-    **Parâmetros:**
-    - `ra`: RA do usuário (13 dígitos) - obrigatório
-    - `skip`: Número de registros a saltar (padrão: 0)
-    - `limit`: Número máximo de registros (padrão: 100, máximo: 1000)
+    **Query Parameters:**
+    - `skip` (int): Número de registros a saltar. Padrão: 0
+    - `limit` (int): Número máximo de registros por página. Padrão: 100, Máximo: 1000
+    
+    **Respostas:**
+    - 200: Lista de eventos retornada com sucesso
+    - 404: Nenhum evento encontrado para o usuário
+    - 401: Token ausente ou inválido
     """
-    validar_usuario_existe(db, ra)
+    ra = str(usuario_autenticado.ra)
     
     eventos = crud.obter_calendarios_por_usuario(db, ra, skip, limit)
     total = db.query(models.Calendario).filter(models.Calendario.ra == ra).count()
@@ -199,88 +209,104 @@ def listar_eventos_calendario(
 @router.get("/{id_data_evento}", response_model=schemas.GenericResponse[schemas.Calendario])
 def obter_evento_calendario(
     id_data_evento: int,
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
     db: Session = Depends(get_db)
 ):
     """
     Obter detalhes de um evento específico do calendário.
     
-    **Parâmetros:**
-    - `id_data_evento`: ID do evento de calendário
-    """
-    db_evento = validar_calendario_existe(db, id_data_evento)
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
-    return schemas.GenericResponse(
-        data=db_evento,
-        success=True
-    )
+    **Path Parameters:**
+    - `id_data_evento` (int): ID único do evento de calendário
+    
+    **Restrições:**
+    - Usuário só pode acessar seus próprios eventos
+    
+    **Respostas:**
+    - 200: Evento retornado com sucesso
+    - 403: Usuário não tem permissão para acessar este evento
+    - 404: Evento não encontrado
+    - 401: Token ausente ou inválido
+    """
+    ra = str(usuario_autenticado.ra)
+    evento = _validar_evento_pertence_usuario(db, id_data_evento, ra)
+    
+    return schemas.GenericResponse(data=evento, success=True)
 
 
 @router.get("/data/{data_evento}", response_model=schemas.GenericResponse[schemas.Calendario])
 def obter_evento_por_data(
-    data_evento: str = Path(..., description="Data do evento (formato: YYYY-MM-DD)"),
-    ra: str = Query(..., min_length=13, max_length=13, description="RA do usuário"),
+    data_evento: str = Path(..., description="Data no formato YYYY-MM-DD"),
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
     db: Session = Depends(get_db)
 ):
     """
-    Obter evento de calendário para uma data específica do usuário.
+    Obter evento de calendário para uma data específica do usuário autenticado.
     
-    Retorna 404 se nenhum evento for encontrado para a combinação de RA e data.
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
-    **Parâmetros:**
-    - `data_evento`: Data no formato YYYY-MM-DD (no path) - obrigatório
-    - `ra`: RA do usuário (13 dígitos, query param) - obrigatório
+    **Path Parameters:**
+    - `data_evento` (string): Data do evento no formato YYYY-MM-DD. Obrigatório.
+    
+    **Respostas:**
+    - 200: Evento retornado com sucesso
+    - 400: Formato de data inválido
+    - 404: Nenhum evento encontrado para esta data
+    - 401: Token ausente ou inválido
     """
-    validar_usuario_existe(db, ra)
-    
-    try:
-        from datetime import datetime
-        data_parsed = datetime.strptime(data_evento, "%Y-%m-%d").date()
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail="Formato de data inválido. Use YYYY-MM-DD"
-        )
+    ra = usuario_autenticado.ra
+    data_parsed = _parsear_data(data_evento)
     
     evento = db.query(models.Calendario).filter(
         models.Calendario.ra == ra,
         models.Calendario.data_evento == data_parsed
     ).first()
     
-    if evento is None:
+    if not evento:
         raise HTTPException(
             status_code=404,
             detail=f"Nenhum evento encontrado para o RA {ra} na data {data_evento}"
         )
     
-    return schemas.GenericResponse(
-        data=evento,
-        success=True
-    )
+    return schemas.GenericResponse(data=evento, success=True)
 
 
 @router.get("/tipo/{id_tipo_data}", response_model=schemas.GenericListResponse[schemas.Calendario])
 def listar_eventos_por_tipo(
-    id_tipo_data: int = Path(..., ge=1, le=3, description="Tipo de data (1=Falta, 2=Não Letivo, 3=Letivo)"),
-    ra: str = Query(..., min_length=13, max_length=13, description="RA do usuário"),
-    skip: int = Query(0, ge=0, description="Paginação: saltar registros"),
-    limit: int = Query(100, ge=1, le=1000, description="Paginação: limite de registros"),
+    id_tipo_data: int = Path(..., ge=1, le=3, description="Tipo (1=Falta, 2=Não Letivo, 3=Letivo)"),
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db)
 ):
     """
-    Listar eventos de calendário filtrados por tipo de data.
+    Listar eventos do calendário filtrados por tipo de data para o usuário autenticado.
     
-    Retorna 404 se nenhum evento for encontrado para o tipo especificado.
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
-    **Parâmetros:**
-    - `id_tipo_data`: Tipo de data (1=Falta, 2=Não Letivo, 3=Letivo) (no path) - obrigatório
-    - `ra`: RA do usuário (13 dígitos, query param) - obrigatório
-    - `skip`: Número de registros a saltar (padrão: 0)
-    - `limit`: Número máximo de registros (padrão: 100, máximo: 1000)
+    **Path Parameters:**
+    - `id_tipo_data` (int): Tipo de data. Valores válidos: 1=Falta, 2=Não Letivo, 3=Letivo
+    
+    **Query Parameters:**
+    - `skip` (int): Número de registros a saltar. Padrão: 0
+    - `limit` (int): Número máximo de registros por página. Padrão: 100, Máximo: 1000
+    
+    **Respostas:**
+    - 200: Lista de eventos retornada com sucesso
+    - 400: Tipo de data inválido
+    - 404: Nenhum evento encontrado para este tipo
+    - 401: Token ausente ou inválido
     """
-    # Validações
-    validar_usuario_existe(db, ra)
-    validar_tipo_data_existe(db, id_tipo_data)
+    ra = str(usuario_autenticado.ra)
     
+    # Validação
+    _validar_tipo_data_existe(db, id_tipo_data)
+    
+    # Buscar eventos
     eventos = crud.obter_calendarios_por_tipo(db, ra, id_tipo_data, skip, limit)
     total = db.query(models.Calendario).filter(
         models.Calendario.ra == ra,
@@ -288,7 +314,7 @@ def listar_eventos_por_tipo(
     ).count()
     
     if total == 0:
-        tipo_nome = {1: "Falta", 2: "Não Letivo", 3: "Letivo"}.get(id_tipo_data, f"Tipo {id_tipo_data}")
+        tipo_nome = TIPO_DATA_NOMES.get(id_tipo_data, f"Tipo {id_tipo_data}")
         raise HTTPException(
             status_code=404,
             detail=f"Nenhum evento do tipo '{tipo_nome}' encontrado para o RA {ra}"
@@ -303,109 +329,173 @@ def listar_eventos_por_tipo(
     )
 
 
+# ============================================================================
+# ENDPOINTS - UPDATE
+# ============================================================================
+
 @router.put("/{id_data_evento}", response_model=schemas.GenericResponse[schemas.Calendario])
 def atualizar_evento_calendario(
     id_data_evento: int,
     calendario: schemas.CalendarioCreate,
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
     db: Session = Depends(get_db)
 ):
     """
-    Atualizar um evento do calendário.
+    Atualizar todos os campos de um evento do calendário (PUT).
     
-    **Restrição:** Apenas um evento por data e usuário é permitido.
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
-    **Parâmetros:**
-    - `id_data_evento`: ID do evento a atualizar
-    - Body:
-        - `ra`: RA do usuário
-        - `data_evento`: Data do evento
-        - `id_tipo_data`: Tipo de data
+    **Path Parameters:**
+    - `id_data_evento` (int): ID único do evento a atualizar
+    
+    **Body:**
+    - `data_evento` (date): Nova data do evento no formato YYYY-MM-DD
+    - `id_tipo_data` (int): Novo tipo de data (1=Falta, 2=Não Letivo, 3=Letivo)
+    
+    **Restrições:**
+    - Usuário só pode atualizar seus próprios eventos
+    - Apenas um evento por combinação de RA e data é permitido
+    - Todos os campos são obrigatórios (use PATCH para atualização parcial)
+    
+    **Respostas:**
+    - 200: Evento atualizado com sucesso
+    - 400: Tipo de data inválido ou outro erro de validação
+    - 403: Usuário não tem permissão para atualizar este evento
+    - 404: Evento não encontrado
+    - 409: Evento já existe para esta data
+    - 401: Token ausente ou inválido
     """
-    validar_calendario_existe(db, id_data_evento)
-    validar_usuario_existe(db, calendario.ra)
-    validar_tipo_data_existe(db, calendario.id_tipo_data)
-    validar_evento_duplicado(db, calendario.ra, calendario.data_evento, id_data_evento)
+    ra = str(usuario_autenticado.ra)
     
-    try:
-        db_atualizado = crud.atualizar_calendario(db, id_data_evento, calendario)
-        return schemas.GenericResponse(
-            data=db_atualizado,
-            success=True,
-            message="Evento do calendário atualizado com sucesso"
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Validações
+    evento = _validar_evento_pertence_usuario(db, id_data_evento, ra)
+    _validar_tipo_data_existe(db, calendario.id_tipo_data)
+    _validar_evento_nao_duplicado(db, ra, calendario.data_evento, id_data_evento)
+    
+    # Atualizar
+    evento_data = calendario.model_dump()
+    evento_data['ra'] = ra
+    
+    for key, value in evento_data.items():
+        setattr(evento, key, value)
+    
+    db.commit()
+    db.refresh(evento)
+    
+    return schemas.GenericResponse(
+        data=evento,
+        success=True,
+        message="Evento do calendário atualizado com sucesso"
+    )
 
 
 @router.patch("/{id_data_evento}", response_model=schemas.GenericResponse[schemas.Calendario])
 def atualizar_parcial_evento_calendario(
     id_data_evento: int,
     calendario: schemas.CalendarioUpdate,
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
     db: Session = Depends(get_db)
 ):
     """
     Atualizar parcialmente um evento do calendário (PATCH).
     
-    Apenas os campos fornecidos serão atualizados.
-    **Restrição:** Apenas um evento por data e usuário é permitido.
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
-    **Parâmetros:**
-    - `id_data_evento`: ID do evento a atualizar
-    - Body (todos opcionais):
-        - `ra`: RA do usuário
-        - `data_evento`: Data do evento
-        - `id_tipo_data`: Tipo de data
+    **Path Parameters:**
+    - `id_data_evento` (int): ID único do evento a atualizar
+    
+    **Body (todos os campos opcionais):**
+    - `data_evento` (date, opcional): Nova data do evento no formato YYYY-MM-DD
+    - `id_tipo_data` (int, opcional): Novo tipo de data (1=Falta, 2=Não Letivo, 3=Letivo)
+    
+    **Restrições:**
+    - Usuário só pode atualizar seus próprios eventos
+    - Apenas um evento por combinação de RA e data é permitido
+    - Apenas campos fornecidos serão atualizados
+    
+    **Respostas:**
+    - 200: Evento atualizado com sucesso
+    - 400: Tipo de data inválido ou outro erro de validação
+    - 403: Usuário não tem permissão para atualizar este evento
+    - 404: Evento não encontrado
+    - 409: Evento já existe para esta data
+    - 401: Token ausente ou inválido
     """
-    db_evento = validar_calendario_existe(db, id_data_evento)
+    ra = str(usuario_autenticado.ra)
     
-    if calendario.ra:
-        validar_usuario_existe(db, calendario.ra)
+    # Validação de propriedade
+    evento = _validar_evento_pertence_usuario(db, id_data_evento, ra)
     
+    # Validar tipo se fornecido
     if calendario.id_tipo_data:
-        validar_tipo_data_existe(db, calendario.id_tipo_data)
+        _validar_tipo_data_existe(db, calendario.id_tipo_data)
     
-    # Se data ou RA foram alterados, verificar se já existe evento para essa combinação
-    if calendario.ra or calendario.data_evento:
-        ra_para_verificar = str(calendario.ra) if calendario.ra else str(db_evento.ra)
-        data_para_verificar = calendario.data_evento if calendario.data_evento else db_evento.data_evento
-        validar_evento_duplicado(db, ra_para_verificar, data_para_verificar, id_data_evento)
+    # Validar duplicação se data foi alterada
+    if calendario.data_evento:
+        _validar_evento_nao_duplicado(db, ra, calendario.data_evento, id_data_evento)
     
-    try:
-        db_atualizado = crud.atualizar_calendario_parcial(db, id_data_evento, calendario)
-        return schemas.GenericResponse(
-            data=db_atualizado,
-            success=True,
-            message="Evento do calendário atualizado parcialmente com sucesso"
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Atualizar apenas campos fornecidos
+    dados_atualizacao = calendario.model_dump(exclude_unset=True)
+    dados_atualizacao['ra'] = ra
+    
+    for key, value in dados_atualizacao.items():
+        setattr(evento, key, value)
+    
+    db.commit()
+    db.refresh(evento)
+    
+    return schemas.GenericResponse(
+        data=evento,
+        success=True,
+        message="Evento do calendário atualizado parcialmente com sucesso"
+    )
 
+
+# ============================================================================
+# ENDPOINTS - DELETE
+# ============================================================================
 
 @router.delete("/{id_data_evento}", response_model=schemas.GenericResponse[dict])
 def deletar_evento_calendario(
     id_data_evento: int,
+    usuario_autenticado: models.Usuario = Depends(verificar_token),
     db: Session = Depends(get_db)
 ):
     """
     Deletar um evento do calendário.
     
-    **Parâmetros:**
-    - `id_data_evento`: ID do evento a deletar
-    """
-    validar_calendario_existe(db, id_data_evento)
+    **Autenticação:**
+    - Requer token JWT no header `Authorization: Bearer <token>`
     
+    **Path Parameters:**
+    - `id_data_evento` (int): ID único do evento a deletar
+    
+    **Restrições:**
+    - Usuário só pode deletar seus próprios eventos
+    
+    **Respostas:**
+    - 200: Evento deletado com sucesso
+    - 403: Usuário não tem permissão para deletar este evento
+    - 404: Evento não encontrado
+    - 401: Token ausente ou inválido
+    """
+    ra = str(usuario_autenticado.ra)
+    
+    # Validação
+    _validar_evento_pertence_usuario(db, id_data_evento, ra)
+    
+    # Deletar
     if crud.deletar_calendario(db, id_data_evento):
         return schemas.GenericResponse(
             data={"id_deletado": id_data_evento},
             success=True,
             message="Evento do calendário deletado com sucesso"
         )
+    
     raise HTTPException(
         status_code=400,
         detail="Erro ao deletar evento do calendário"
     )
 
-
-# ============================================================================
-# FIM DO ARQUIVO
-# ============================================================================

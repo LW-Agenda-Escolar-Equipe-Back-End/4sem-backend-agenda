@@ -360,7 +360,7 @@ def atualizar_parcial_evento_calendario(
         validar_usuario_existe(db, calendario.ra)
     
     if calendario.id_tipo_data:
-        validar_tipo_data_existe(db, calendario.id_tipo_data)
+    if calendario.id_tipo_data is not None:
     
     # Se data ou RA foram alterados, verificar se já existe evento para essa combinação
     if calendario.ra is not None or calendario.data_evento is not None:

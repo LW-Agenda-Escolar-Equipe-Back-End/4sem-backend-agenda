@@ -104,9 +104,8 @@ def validar_evento_duplicado(
     Raises:
         HTTPException: 409 se evento já existe
     """
-    from typing import cast
     
-    ra_str = cast(str, ra)
+    ra_str = ra
     
     query = db.query(models.Calendario).filter(
         models.Calendario.ra == ra_str,

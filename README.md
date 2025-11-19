@@ -1,90 +1,126 @@
 # API Agenda Acadêmica
 
-API REST para gerenciamento de agenda acadêmica de alunos com autenticação JWT e migrations automáticas.
+API REST para gerenciamento de agenda acadêmica de alunos. Desenvolvida com FastAPI, SQLAlchemy e PostgreSQL.
 
-## Quick Start
+## Pré-requisitos
 
-### 1. Setup
+- Python 3.10+
+- pip ou poetry
+- PostgreSQL (opcional - pode usar SQLite para desenvolvimento)
+- Git
+
+## Instalação e Execução
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/MarcosAlves90/4sem-backend-agenda.git
+cd 4sem-backend-agenda
+```
+
+### 2. Crie um ambiente virtual
+
+**Windows:**
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
+.venv\Scripts\activate
+```
 
+**Linux/macOS:**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Instale as dependências
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configuração
+### 4. Configure as variáveis de ambiente
 
-Crie arquivo `.env`:
+Copie o arquivo `.env.example` para `.env`:
 
-```env
-DATABASE_URL=postgresql://user:password@host:port/database
-SECRET_KEY=sua-chave-secreta-gerada
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
+```bash
+cp .env.example .env
 ```
 
-### 3. Inicializar BD
+Edite `.env` conforme necessário (padrão já usa SQLite):
 
-Descomente em `app/main.py`:
+```env
+DATABASE_URL=sua-url-do-banco
+SECRET_KEY=sua-chave-secreta-aqui
+```
+
+### 5. Crie as tabelas
+
+Descomente a linha em `app/main.py`:
 
 ```python
 Base.metadata.create_all(bind=engine)
 ```
 
-Execute uma vez e recomente.
+Então execute uma vez e recomente.
 
-### 4. Executar
+### 6. Execute a aplicação
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-API: [`http://localhost:8000`](http://localhost:8000)  
-Docs: [`http://localhost:8000/docs`](http://localhost:8000/docs)
+A API estará disponível em: [`http://localhost:8000`](http://localhost:8000)
 
-## Rotas
+## Documentação
 
-- `GET /api/v1/health` - Health check
-- `GET /` - Página inicial
-- `/api/v1/usuario` - Gerenciamento de usuários
-- `/api/v1/docentes` - Gerenciamento de docentes
-- `/api/v1/discentes` - Gerenciamento de discentes
-- `/api/v1/tipo-data` - Tipos de datas
-- `/api/v1/calendario` - Calendário acadêmico
-- `/app/v1/anotacao` - Gerenciamento de anotações
+Acesse a documentação interativa:
 
-## Stack
+- **Swagger UI:** [`http://localhost:8000/docs`](http://localhost:8000/docs)
+- **ReDoc:** [`http://localhost:8000/redoc`](http://localhost:8000/redoc)
+- **Health Check:** [`http://localhost:8000/api/v1/health`](http://localhost:8000/api/v1/health)
 
-- **FastAPI** - Framework web moderno
-- **SQLAlchemy** - ORM
-- **PostgreSQL** - Banco de dados
-- **Pydantic** - Validação de dados
-- **JWT** - Autenticação
-- **Alembic** - Migrations
+## Estrutura do Projeto
 
-## Estrutura
-
-```txt
-app/
-├── main.py          # App e rotas principais
-├── database.py      # Conexão BD
-├── models.py        # Modelos ORM
-├── crud.py          # Operações
-├── schemas.py       # Validators Pydantic
-├── auth.py          # Autenticação JWT
-└── routers/         # Endpoints
-    ├── anotacao.py
-    ├── calendario.py
-    ├── discentes.py
-    ├── docentes.py
-    ├── health.py
-    ├── tipo_data.py
-    └── usuario.py
+```text
+4sem-backend-agenda/
+├── app/
+│   ├── main.py              # Aplicação principal
+│   ├── database.py          # Configuração do BD
+│   ├── models.py            # Modelos ORM
+│   ├── crud.py              # Operações CRUD
+│   ├── schemas.py           # Schemas Pydantic
+│   └── routers/             # Rotas da API
+├── templates/
+│   └── index.html           # Página inicial
+├── requirements.txt         # Dependências
+├── README.md                # Este arquivo
+└── .gitignore
 ```
+
+## Tecnologias
+
+- **FastAPI** - Framework web assíncrono
+- **SQLAlchemy** - ORM para banco de dados
+- **Pydantic** - Validação de dados
+- **Uvicorn** - ASGI server
+- **Tailwind CSS** - Estilização (frontend)
+
+## Variáveis de Ambiente
+
+Um arquivo `.env.example` é fornecido como template. Para usar:
+
+1. Copie para `.env`:
+
+```bash
+cp .env.example .env
+```
+
+1. Configure as variáveis conforme seu ambiente:
+   - `DATABASE_URL` - URL de conexão do banco (SQLite ou PostgreSQL)
+   - `SECRET_KEY` - Chave secreta para criptografia (gere com `openssl rand -hex 32`)
 
 ## Licença
 
-MIT
+Este projeto está sob licença MIT.

@@ -175,11 +175,9 @@ class Discente(Base):
     email = Column(String(40), nullable=False, index=True)
     tel_celular = Column(String(15), nullable=True)
     id_curso = Column(Integer, ForeignKey("curso.id_curso"), nullable=True)
-    ra = Column(String(13), ForeignKey("usuario.ra"), nullable=False, index=True)
 
-    # Relacionamentos
+    # Relacionamento
     curso = relationship("Curso")
-    usuario = relationship("Usuario", foreign_keys=[ra])
 
 
 class Nota(Base):

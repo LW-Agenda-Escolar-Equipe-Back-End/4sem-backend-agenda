@@ -278,3 +278,162 @@ def obter_discente_por_email(
 			raise PermissaoNegada()
 
 	return schemas.GenericResponse(data=discente, success=True)
+
+
+@router.put("/{id_discente}", response_model=schemas.GenericResponse[schemas.Discente])
+def atualizar_discente_completo(
+	id_discente: int,
+	discente: schemas.DiscenteCreate,
+	usuario_autenticado: models.Usuario = Depends(verificar_token),
+	db: Session = Depends(get_db)
+):
+	"""
+	Atualizar completamente um discente (PUT).
+
+	**Autenticação:**
+	- Requer token JWT no header `Authorization: Bearer <token>`
+
+	**Path Parameters:**
+	- `id_discente` (int): ID único do discente a atualizar
+
+	**Body:**
+	- `nome` (string): Nome do discente (1-50 caracteres)
+	- `email` (string): Email do discente (deve ser único)
+	- `tel_celular` (string, opcional): Telefone (máx. 15 caracteres)
+	- `id_curso` (int, opcional): ID do curso
+
+	**Restrições:**
+	- Discente deve existir e pertencer ao usuário autenticado
+	- Email deve ser único (exceto o email atual do discente)
+	- Todos os campos obrigatórios são necessários
+
+	**Respostas:**
+	- 200: Discente atualizado com sucesso
+	- 400: Erro de validação ou email duplicado
+	- 403: Usuário não tem permissão para atualizar este discente
+	- 404: Discente não encontrado
+	- 401: Token ausente ou inválido
+	"""
+	try:
+		ra_usuario = usuario_autenticado.ra if hasattr(usuario_autenticado, 'ra') else usuario_autenticado
+		_validar_discente_pertence_usuario(db, id_discente, ra_usuario)
+		_validar_email_unico(db, discente.email, id_discente)
+
+		db_atualizado = crud.atualizar_discente(db, id_discente, discente)
+		return schemas.GenericResponse(
+			data=db_atualizado,
+			success=True,
+			message="Discente atualizado com sucesso"
+		)
+	except (DiscenteNaoEncontrado, EmailDuplicado, PermissaoNegada):
+		raise
+	except Exception as e:
+		raise ErroAoAtualizarDiscente(str(e))
+
+
+@router.patch("/{id_discente}", response_model=schemas.GenericResponse[schemas.Discente])
+def atualizar_discente_parcial(
+	id_discente: int,
+	discente_update: schemas.DiscenteUpdate,
+	usuario_autenticado: models.Usuario = Depends(verificar_token),
+	db: Session = Depends(get_db)
+):
+	"""
+	Atualizar parcialmente um discente (PATCH).
+
+	**Autenticação:**
+	- Requer token JWT no header `Authorization: Bearer <token>`
+
+	**Path Parameters:**
+	- `id_discente` (int): ID único do discente a atualizar
+
+	**Body (todos os campos opcionais):**
+	- `nome` (string, opcional): Nome do discente (1-50 caracteres)
+	- `email` (string, opcional): Email do discente (deve ser único)
+	- `tel_celular` (string, opcional): Telefone (máx. 15 caracteres)
+	- `id_curso` (int, opcional): ID do curso
+
+	**Restrições:**
+	- Discente deve existir e pertencer ao usuário autenticado
+	- Email deve ser único (exceto o email atual do discente)
+	- Apenas campos fornecidos serão atualizados
+
+	**Respostas:**
+	- 200: Discente atualizado com sucesso
+	- 400: Erro de validação, email duplicado ou nenhum dado fornecido
+	- 403: Usuário não tem permissão para atualizar este discente
+	- 404: Discente não encontrado
+	- 401: Token ausente ou inválido
+	"""
+	try:
+		ra_usuario = usuario_autenticado.ra if hasattr(usuario_autenticado, 'ra') else usuario_autenticado
+		discente_existente = _validar_discente_pertence_usuario(db, id_discente, ra_usuario)
+
+		# Verificar se há dados para atualizar
+		update_data = discente_update.model_dump(exclude_unset=True)
+		if not update_data:
+			raise ErroAoAtualizarDiscente("Nenhum dado fornecido para atualização")
+
+		# Validar email se fornecido
+		if "email" in update_data:
+			_validar_email_unico(db, update_data["email"], id_discente)
+
+		# Preparar dados completos para atualização
+		dados_atuais = {
+			"nome": str(discente_existente.nome),
+			"email": str(discente_existente.email),
+			"tel_celular": discente_existente.tel_celular,
+			"id_curso": discente_existente.id_curso
+		}
+		dados_atuais.update(update_data)
+
+		discente_completo = schemas.DiscenteCreate(**dados_atuais)
+		db_atualizado = crud.atualizar_discente(db, id_discente, discente_completo)
+
+		return schemas.GenericResponse(
+			data=db_atualizado,
+			success=True,
+			message="Discente atualizado parcialmente com sucesso"
+		)
+	except (DiscenteNaoEncontrado, EmailDuplicado, ErroAoAtualizarDiscente, PermissaoNegada):
+		raise
+	except Exception as e:
+		raise ErroAoAtualizarDiscente(str(e))
+
+
+@router.delete("/{id_discente}", response_model=schemas.GenericResponse[dict])
+def deletar_discente(
+	id_discente: int,
+	usuario_autenticado: models.Usuario = Depends(verificar_token),
+	db: Session = Depends(get_db)
+):
+	"""
+	Deletar um discente existente.
+
+	**Autenticação:**
+	- Requer token JWT no header `Authorization: Bearer <token>`
+
+	**Path Parameters:**
+	- `id_discente` (int): ID único do discente a deletar
+
+	**Restrições:**
+	- Usuário só pode deletar seus próprios discentes
+
+	**Respostas:**
+	- 200: Discente deletado com sucesso
+	- 400: Erro ao deletar discente
+	- 403: Usuário não tem permissão para deletar este discente
+	- 404: Discente não encontrado
+	- 401: Token ausente ou inválido
+	"""
+	ra_usuario = usuario_autenticado.ra if hasattr(usuario_autenticado, 'ra') else usuario_autenticado
+	_validar_discente_pertence_usuario(db, id_discente, ra_usuario)
+
+	if crud.deletar_discente(db, id_discente):
+		return schemas.GenericResponse(
+			data={"id_deletado": id_discente},
+			success=True,
+			message="Discente deletado com sucesso"
+		)
+
+	raise ErroAoDeletarDiscente()  

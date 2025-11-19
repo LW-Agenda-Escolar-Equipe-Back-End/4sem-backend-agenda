@@ -51,8 +51,10 @@ Docs: [`http://localhost:8000/docs`](http://localhost:8000/docs)
 - `GET /` - Página inicial
 - `/api/v1/usuario` - Gerenciamento de usuários
 - `/api/v1/docentes` - Gerenciamento de docentes
+- `/api/v1/discentes` - Gerenciamento de discentes
 - `/api/v1/tipo-data` - Tipos de datas
 - `/api/v1/calendario` - Calendário acadêmico
+- `/app/v1/anotacao` - Gerenciamento de anotações
 
 ## Stack
 
@@ -72,7 +74,15 @@ app/
 ├── models.py        # Modelos ORM
 ├── crud.py          # Operações
 ├── schemas.py       # Validators Pydantic
+├── auth.py          # Autenticação JWT
 └── routers/         # Endpoints
+    ├── anotacao.py
+    ├── calendario.py
+    ├── discentes.py
+    ├── docentes.py
+    ├── health.py
+    ├── tipo_data.py
+    └── usuario.py
 ```
 
 ## Licença

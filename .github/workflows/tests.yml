@@ -10,6 +10,8 @@ jobs:
   test:
     name: Tests & Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     services:
       postgres:
@@ -79,6 +81,8 @@ jobs:
   lint:
     name: Code Quality
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout código
@@ -110,6 +114,8 @@ jobs:
   security:
     name: Security Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout código

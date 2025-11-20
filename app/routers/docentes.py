@@ -63,6 +63,7 @@ class PermissaoNegada(HTTPException):
 class DocenteUpdate(BaseModel):
 	nome: Optional[str] = Field(None, min_length=1, max_length=50)
 	email: Optional[EmailStr] = None
+	disciplina: Optional[str] = Field(None, max_length=100)
 
 	class Config:
 		from_attributes = True
@@ -132,6 +133,7 @@ def criar_docente(
 	**Body:**
 	- `nome` (string): Nome do docente (1-50 caracteres)
 	- `email` (string): Email do docente (deve ser único)
+	- `disciplina` (string, opcional): Disciplina/Matéria que leciona (máximo 100 caracteres)
 	
 	**Restrições:**
 	- Email deve ser único na base de dados
@@ -152,12 +154,13 @@ def criar_docente(
 		db_docente = models.Docente(
 			nome=docente.nome,
 			email=docente.email,
-			ra=ra_usuario
+			ra=ra_usuario,
+			disciplina=docente.disciplina
 		)
 		db.add(db_docente)
 		db.commit()
 		db.refresh(db_docente)
-		
+
 		return schemas.GenericResponse(
 			data=db_docente,
 			success=True,
@@ -257,6 +260,7 @@ def atualizar_docente(
 	**Body:**
 	- `nome` (string): Nome do docente (1-50 caracteres)
 	- `email` (string): Email do docente (deve ser único)
+	- `disciplina` (string, opcional): Disciplina/Matéria que leciona (máximo 100 caracteres)
 	
 	**Restrições:**
 	- Docente deve existir e pertencer ao usuário autenticado
@@ -306,6 +310,7 @@ def atualizar_parcial_docente(
 	**Body (todos os campos opcionais):**
 	- `nome` (string, opcional): Nome do docente (1-50 caracteres)
 	- `email` (string, opcional): Email do docente (deve ser único)
+	- `disciplina` (string, opcional): Disciplina/Matéria que leciona (máximo 100 caracteres)
 	
 	**Restrições:**
 	- Docente deve existir e pertencer ao usuário autenticado

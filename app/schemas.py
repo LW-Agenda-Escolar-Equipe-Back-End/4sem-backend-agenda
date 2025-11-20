@@ -122,6 +122,7 @@ class Curso(BaseSchema):
 class DocenteCreate(BaseSchema):
     nome: str = Field(..., min_length=1, max_length=50)
     email: EmailStr
+    disciplina: Optional[str] = Field(None, max_length=100)
 
 
 class Docente(BaseSchema):
@@ -129,6 +130,7 @@ class Docente(BaseSchema):
     nome: str = Field(..., min_length=1, max_length=50)
     email: EmailStr
     ra: Optional[RA] = None
+    disciplina: Optional[str] = Field(None, max_length=100)
 
 
 # ---- DISCENTE

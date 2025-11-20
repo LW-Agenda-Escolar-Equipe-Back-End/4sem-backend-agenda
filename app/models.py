@@ -109,6 +109,7 @@ class Docente(Base):
 	nome = Column(String(50), nullable=False)
 	email = Column(String(40), nullable=False, index=True)
 	ra = Column(String(13), ForeignKey("usuario.ra"), nullable=False, index=True)
+	disciplina = Column(String(100), nullable=True)
 
 	# Relacionamentos
 	usuario = relationship("Usuario", foreign_keys=[ra])

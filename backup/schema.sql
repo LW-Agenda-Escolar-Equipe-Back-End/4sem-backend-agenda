@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS docente (
     nome VARCHAR(50) NOT NULL,
     email VARCHAR(40) NOT NULL,
     ra VARCHAR(13) NOT NULL,
+    disciplina VARCHAR(100),
     FOREIGN KEY (ra) REFERENCES usuario(ra) ON DELETE CASCADE
 );
 

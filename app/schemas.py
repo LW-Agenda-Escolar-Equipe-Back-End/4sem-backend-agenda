@@ -110,21 +110,6 @@ class TipoData(BaseSchema):
     nome: str = Field(..., min_length=1, max_length=10)
 
 
-class DisciplinaCreate(BaseSchema):
-    nome: str = Field(..., min_length=1, max_length=80)
-
-
-class Disciplina(BaseSchema):
-    id_disciplina: int
-    nome: str = Field(..., min_length=1, max_length=80)
-    user_ra: RA
-
-    @field_validator("user_ra")
-    @classmethod
-    def validar_user_ra(cls, v):
-        return validar_ra(v)
-
-
 class CursoCreate(BaseSchema):
     nome: str = Field(..., min_length=1, max_length=80)
 
@@ -289,10 +274,6 @@ class Calendario(BaseSchema):
 class HorarioCreate(BaseSchema):
     ra: RA
     dia_semana: DiaSemanaEnum
-    id_disciplina_1: Optional[int] = None
-    id_disciplina_2: Optional[int] = None
-    id_disciplina_3: Optional[int] = None
-    id_disciplina_4: Optional[int] = None
 
     @field_validator("ra")
     @classmethod
@@ -304,10 +285,6 @@ class Horario(BaseSchema):
     id_horario: int
     ra: RA
     dia_semana: DiaSemanaEnum
-    id_disciplina_1: Optional[int] = None
-    id_disciplina_2: Optional[int] = None
-    id_disciplina_3: Optional[int] = None
-    id_disciplina_4: Optional[int] = None
 
     @field_validator("ra")
     @classmethod
@@ -318,7 +295,6 @@ class Horario(BaseSchema):
 # ---- NOTA
 class NotaCreate(BaseSchema):
     ra: RA
-    id_disciplina: int
     bimestre: Optional[int] = None
     nota: NotaDecimal
 
@@ -331,7 +307,6 @@ class NotaCreate(BaseSchema):
 class Nota(BaseSchema):
     id_nota: int
     ra: RA
-    id_disciplina: int
     bimestre: Optional[int] = None
     nota: NotaDecimal
 
@@ -391,63 +366,3 @@ class Token(BaseSchema):
 class RefreshTokenRequest(BaseSchema):
     """Request para renovar access_token"""
     refresh_token: str
-
-
-# ============================================================================
-# SCHEMAS - MODELOS COM RELACIONAMENTOS (OPCIONAL - para consultas complexas)
-# ============================================================================
-
-class UsuarioDetail(Usuario):
-    """Modelo com dados relacionados do usuário"""
-    instituicao: Optional[Instituicao] = None
-    curso: Optional[Curso] = None
-
-
-class CursoDetail(Curso):
-    """Modelo com disciplinas do curso"""
-    disciplinas: List["CursoDisciplinaDetail"] = []
-
-
-class DisciplinaDetail(Disciplina):
-	"""Modelo com docentes e cursos"""
-	docentes: List[Docente] = []
-	cursos: List[Curso] = []
-
-
-# ============================================================================
-# SCHEMAS - TABELAS ASSOCIATIVAS
-# ============================================================================
-
-class CursoDisciplinaCreate(BaseSchema):
-	"""Schema para criar associação Curso-Disciplina"""
-	id_curso: int
-	id_disciplina: int
-	modulo: int = Field(..., ge=1, le=12, description="Módulo (1-12)")
-
-
-class CursoDisciplina(CursoDisciplinaCreate):
-	"""Schema completo para Curso-Disciplina"""
-	pass
-
-
-class CursoDisciplinaDetail(CursoDisciplina):
-	"""Modelo com dados relacionados"""
-	curso: Optional[Curso] = None
-	disciplina: Optional[Disciplina] = None
-
-
-class DisciplinaDocenteCreate(BaseSchema):
-	"""Schema para criar associação Disciplina-Docente"""
-	id_disciplina: int
-	id_docente: int
-
-
-class DisciplinaDocente(DisciplinaDocenteCreate):
-	"""Schema completo para Disciplina-Docente"""
-	pass
-
-
-class DisciplinaDocenteDetail(DisciplinaDocente):
-	"""Modelo com dados relacionados"""
-	disciplina: Optional[Disciplina] = None
-	docente: Optional[Docente] = None

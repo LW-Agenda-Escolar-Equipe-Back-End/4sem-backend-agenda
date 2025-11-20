@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS instituicao (
 -- Tabela de Tipos de Data (Letivo, Falta, Não Letivo)
 CREATE TABLE IF NOT EXISTS tipo_data (
     id_tipo_data SERIAL PRIMARY KEY,
-    nome VARCHAR(10) NOT NULL
+    nome VARCHAR(20) NOT NULL UNIQUE
 );
 
 -- Tabela de Cursos
@@ -147,10 +147,10 @@ CREATE INDEX IF NOT EXISTS idx_discente_email ON discente(email);
 CREATE INDEX IF NOT EXISTS idx_discente_ra ON discente(ra);
 
 -- ============================================================================
--- DADOS INICIAIS (OPCIONAL)
+-- DADOS INICIAIS
 -- ============================================================================
 
--- Inserir tipos de data padrão
-INSERT INTO tipo_data (nome) VALUES ('Letivo') ON CONFLICT DO NOTHING;
-INSERT INTO tipo_data (nome) VALUES ('Falta') ON CONFLICT DO NOTHING;
-INSERT INTO tipo_data (nome) VALUES ('N.Letivo') ON CONFLICT DO NOTHING;
+-- Inserir tipos de data padrão com IDs específicos
+INSERT INTO tipo_data (id_tipo_data, nome) VALUES (1, 'Falta') ON CONFLICT DO NOTHING;
+INSERT INTO tipo_data (id_tipo_data, nome) VALUES (2, 'Não letivo') ON CONFLICT DO NOTHING;
+INSERT INTO tipo_data (id_tipo_data, nome) VALUES (3, 'Letivo') ON CONFLICT DO NOTHING;

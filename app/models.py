@@ -54,9 +54,12 @@ class Usuario(Base):
 class TipoData(Base):
     """Modelo de Tipo de Data (Falta, Não Letivo, Letivo)"""
     __tablename__ = "tipo_data"
+    __table_args__ = (
+        UniqueConstraint("nome", name="uq_tipo_data_nome"),
+    )
 
     id_tipo_data = Column(Integer, primary_key=True, index=True)
-    nome = Column(String(10), nullable=False)
+    nome = Column(String(20), nullable=False)
 
     # Relacionamento
     calendarios = relationship("Calendario", back_populates="tipo_data")

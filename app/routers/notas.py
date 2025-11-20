@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from ..database import get_db
 from ..auth import verificar_token
-from .. import crud, models, schemas
+from .. import models, schemas
 
 # ============================================================================
 # CONFIGURAÇÃO DO ROUTER
@@ -19,26 +18,31 @@ router = APIRouter(
 # EXCEÇÕES CUSTOMIZADAS
 # ============================================================================
 
+
 class NotaNaoEncontrada(HTTPException):
     """Nota não encontrada"""
+
     def __init__(self):
         super().__init__(status_code=404, detail="Nota não encontrada")
 
 
 class ErroAoCriarNota(HTTPException):
     """Erro ao criar nota"""
+
     def __init__(self, detail: str):
         super().__init__(status_code=400, detail=detail)
 
 
 class ErroAoAtualizarNota(HTTPException):
     """Erro ao atualizar nota"""
+
     def __init__(self, detail: str):
         super().__init__(status_code=400, detail=detail)
 
 
 class ErroAoDeletarNota(HTTPException):
     """Erro ao deletar nota"""
+
     def __init__(self):
         super().__init__(status_code=400, detail="Erro ao deletar nota")
 
@@ -46,6 +50,7 @@ class ErroAoDeletarNota(HTTPException):
 # ============================================================================
 # VALIDADORES (Responsabilidade Única)
 # ============================================================================
+
 
 def _validar_nota_existe(db: Session, id_nota: int) -> models.Nota:
     """Valida se nota existe. Retorna nota ou lança exceção."""
@@ -56,27 +61,26 @@ def _validar_nota_existe(db: Session, id_nota: int) -> models.Nota:
 
 
 def _validar_nota_pertence_usuario(
-    db: Session,
-    id_nota: int,
-    ra_usuario: str
+    db: Session, id_nota: int, ra_usuario: str
 ) -> models.Nota:
     """Valida se nota existe e pertence ao usuário. Retorna nota ou lança exceção."""
     nota = _validar_nota_existe(db, id_nota)
-    
+
     # Verificar se a nota pertence ao usuário autenticado (comparar por RA)
     if str(nota.ra) != str(ra_usuario):
-        raise HTTPException(status_code=403, detail="Você não tem permissão para acessar esta nota")
-    
+        raise HTTPException(
+            status_code=403, detail="Você não tem permissão para acessar esta nota"
+        )
+
     return nota
 
 
 def _aplicar_atualizacoes_parciais(
-    nota: models.Nota,
-    dados_atualizacao: schemas.NotaUpdate
+    nota: models.Nota, dados_atualizacao: schemas.NotaUpdate
 ) -> models.Nota:
     """Aplica atualizações parciais à nota com early returns."""
     update_data = dados_atualizacao.model_dump(exclude_unset=True)
-    
+
     for campo, valor in update_data.items():
         if valor is not None:
             setattr(nota, campo, valor)
@@ -95,6 +99,7 @@ def _contar_notas(db: Session, query_filter=None) -> int:
 # ============================================================================
 # ENDPOINTS - CREATE
 # ============================================================================
+
 
 @router.post("/", response_model=schemas.GenericResponse[schemas.Nota], status_code=201)
 def criar_nota(
@@ -149,6 +154,7 @@ def criar_nota(
 # ENDPOINTS - READ
 # ============================================================================
 
+
 @router.get("/", response_model=schemas.GenericListResponse[schemas.Nota])
 def listar_todas_notas(
     usuario_autenticado: models.Usuario = Depends(verificar_token),
@@ -170,13 +176,17 @@ def listar_todas_notas(
     - 200: Lista de notas retornada com sucesso
     - 401: Token ausente ou inválido
     """
-    notas = db.query(models.Nota).filter(
-        models.Nota.ra == usuario_autenticado.ra
-    ).offset(skip).limit(limit).all()
-    
-    total = db.query(models.Nota).filter(
-        models.Nota.ra == usuario_autenticado.ra
-    ).count()
+    notas = (
+        db.query(models.Nota)
+        .filter(models.Nota.ra == usuario_autenticado.ra)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    total = (
+        db.query(models.Nota).filter(models.Nota.ra == usuario_autenticado.ra).count()
+    )
 
     return schemas.GenericListResponse(
         data=notas,
@@ -252,11 +262,18 @@ def listar_notas_por_ra(
     """
     # Validar se o RA solicitado corresponde ao do usuário autenticado
     if ra != str(usuario_autenticado.ra):
-        raise HTTPException(status_code=403, detail="Você não tem permissão para acessar notas de outro RA")
+        raise HTTPException(
+            status_code=403,
+            detail="Você não tem permissão para acessar notas de outro RA",
+        )
 
-    notas = db.query(models.Nota).filter(
-        models.Nota.ra == ra
-    ).offset(skip).limit(limit).all()
+    notas = (
+        db.query(models.Nota)
+        .filter(models.Nota.ra == ra)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
     total = _contar_notas(db, models.Nota.ra == ra)
 
@@ -273,6 +290,7 @@ def listar_notas_por_ra(
 # ============================================================================
 # ENDPOINTS - UPDATE
 # ============================================================================
+
 
 @router.put("/{id_nota}", response_model=schemas.GenericResponse[schemas.Nota])
 def atualizar_nota(
@@ -306,7 +324,9 @@ def atualizar_nota(
     - 401: Token ausente ou inválido
     """
     try:
-        nota_existente = _validar_nota_pertence_usuario(db, id_nota, str(usuario_autenticado.ra))
+        nota_existente = _validar_nota_pertence_usuario(
+            db, id_nota, str(usuario_autenticado.ra)
+        )
 
         # Aplicar atualizações
         nota_atualizada = _aplicar_atualizacoes_parciais(nota_existente, nota_update)
@@ -358,7 +378,9 @@ def atualizar_parcial_nota(
     - 401: Token ausente ou inválido
     """
     try:
-        nota_existente = _validar_nota_pertence_usuario(db, id_nota, str(usuario_autenticado.ra))
+        nota_existente = _validar_nota_pertence_usuario(
+            db, id_nota, str(usuario_autenticado.ra)
+        )
 
         # Verificar se há dados para atualizar
         update_data = nota_update.model_dump(exclude_unset=True)
@@ -386,6 +408,7 @@ def atualizar_parcial_nota(
 # ENDPOINTS - DELETE
 # ============================================================================
 
+
 @router.delete("/{id_nota}", response_model=schemas.GenericResponse[dict])
 def deletar_nota(
     id_nota: int,
@@ -412,7 +435,9 @@ def deletar_nota(
     - 404: Nota não encontrada
     - 401: Token ausente ou inválido
     """
-    nota_existente = _validar_nota_pertence_usuario(db, id_nota, str(usuario_autenticado.ra))
+    nota_existente = _validar_nota_pertence_usuario(
+        db, id_nota, str(usuario_autenticado.ra)
+    )
 
     try:
         db.delete(nota_existente)
@@ -423,6 +448,5 @@ def deletar_nota(
             success=True,
             message="Nota deletada com sucesso",
         )
-    except Exception as e:
+    except Exception:
         raise ErroAoDeletarNota()
-

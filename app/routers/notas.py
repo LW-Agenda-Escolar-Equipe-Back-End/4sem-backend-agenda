@@ -25,12 +25,6 @@ class NotaNaoEncontrada(HTTPException):
 		super().__init__(status_code=404, detail="Nota não encontrada")
 
 
-class DisciplinaNaoEncontrada(HTTPException):
-	"""Disciplina não encontrada"""
-	def __init__(self):
-		super().__init__(status_code=404, detail="Disciplina não encontrada")
-
-
 class ErroAoCriarNota(HTTPException):
 	"""Erro ao criar nota"""
 	def __init__(self, detail: str):
@@ -76,16 +70,6 @@ def _validar_nota_pertence_usuario(
 	return nota
 
 
-def _validar_disciplina_existe(db: Session, id_disciplina: int) -> models.Disciplina:
-	"""Valida se disciplina existe. Retorna disciplina ou lança exceção."""
-	disciplina = db.query(models.Disciplina).filter(
-		models.Disciplina.id_disciplina == id_disciplina
-	).first()
-	if not disciplina:
-		raise DisciplinaNaoEncontrada()
-	return disciplina
-
-
 def _aplicar_atualizacoes_parciais(
 	nota: models.Nota,
 	dados_atualizacao: schemas.NotaUpdate
@@ -125,35 +109,25 @@ def criar_nota(
 	- Requer token JWT no header `Authorization: Bearer <token>`
 
 	**Body:**
-	- `ra` (string): RA do aluno (exatamente 13 dígitos, deve corresponder ao token)
-	- `id_disciplina` (int): ID da disciplina
-	- `bimestre` (int): Número do bimestre (1-4)
-	- `nota` (float): Valor da nota (0-10)
+	- `bimestre` (int, opcional): Número do bimestre
+	- `nota` (string, opcional): Valor da nota
+	- `disciplina` (string, opcional): Nome da disciplina (máximo 100 caracteres)
 
 	**Restrições:**
-	- Disciplina deve existir na base de dados
-	- Nota deve estar entre 0 e 10
-	- RA deve corresponder ao do usuário autenticado
+	- RA será associado automaticamente ao do usuário autenticado
 
 	**Respostas:**
 	- 201: Nota criada com sucesso
-	- 400: Erro de validação, disciplina não encontrada ou RA inválido
+	- 400: Erro de validação
 	- 401: Token ausente ou inválido
 	"""
 	try:
-		# Validar se RA corresponde ao usuário autenticado
-		if nota.ra != str(usuario_autenticado.ra):
-			raise ErroAoCriarNota("Você só pode criar notas com seu próprio RA")
-
-		# Validação: disciplina deve existir
-		_validar_disciplina_existe(db, nota.id_disciplina)
-
-		# Criar e persistir nota
+		# Criar e persistir nota com RA do usuário autenticado
 		nova_nota = models.Nota(
-			ra=nota.ra,
-			id_disciplina=nota.id_disciplina,
+			ra=usuario_autenticado.ra,
 			bimestre=nota.bimestre,
 			nota=nota.nota,
+			disciplina=nota.disciplina,
 		)
 
 		db.add(nova_nota)
@@ -165,7 +139,7 @@ def criar_nota(
 			success=True,
 			message="Nota criada com sucesso",
 		)
-	except (DisciplinaNaoEncontrada, ErroAoCriarNota):
+	except ErroAoCriarNota:
 		raise
 	except Exception as e:
 		raise ErroAoCriarNota(str(e))
@@ -247,60 +221,6 @@ def obter_nota(
 	)
 
 
-@router.get("/disciplina/{id_disciplina}", response_model=schemas.GenericListResponse[schemas.Nota])
-def listar_notas_por_disciplina(
-	id_disciplina: int,
-	usuario_autenticado: models.Usuario = Depends(verificar_token),
-	skip: int = Query(0, ge=0, description="Paginação: saltar registros"),
-	limit: int = Query(100, ge=1, le=1000, description="Limite de registros"),
-	db: Session = Depends(get_db),
-):
-	"""
-	Listar notas de uma disciplina específica com paginação.
-
-	**Autenticação:**
-	- Requer token JWT no header `Authorization: Bearer <token>`
-
-	**Path Parameters:**
-	- `id_disciplina` (int): ID da disciplina
-
-	**Query Parameters:**
-	- `skip` (int): Número de registros a saltar. Padrão: 0
-	- `limit` (int): Número máximo de registros por página. Padrão: 100, Máximo: 1000
-
-	**Restrições:**
-	- Disciplina deve existir
-	- Usuário só pode listar notas de disciplinas que pertençam a ele
-
-	**Respostas:**
-	- 200: Lista de notas retornada com sucesso
-	- 403: Usuário não tem permissão para acessar notas desta disciplina
-	- 404: Disciplina não encontrada
-	- 401: Token ausente ou inválido
-	"""
-	# Validação: disciplina deve existir
-	disciplina = _validar_disciplina_existe(db, id_disciplina)
-
-	# Validação: disciplina deve pertencer ao usuário autenticado
-	if str(disciplina.user_ra) != str(usuario_autenticado.ra):
-		raise HTTPException(status_code=403, detail="Você não tem permissão para acessar notas desta disciplina")
-
-	notas = db.query(models.Nota).filter(
-		models.Nota.id_disciplina == id_disciplina
-	).offset(skip).limit(limit).all()
-
-	total = _contar_notas(db, models.Nota.id_disciplina == id_disciplina)
-
-	return schemas.GenericListResponse(
-		data=notas,
-		total=total,
-		skip=skip,
-		limit=limit,
-		success=True,
-		message="Notas retornadas com sucesso",
-	)
-
-
 @router.get("/ra/{ra}", response_model=schemas.GenericListResponse[schemas.Nota])
 def listar_notas_por_ra(
 	ra: str,
@@ -371,33 +291,22 @@ def atualizar_nota(
 	- `id_nota` (int): ID único da nota a atualizar
 
 	**Body (todos os campos opcionais):**
-	- `ra` (string, opcional): RA do aluno (deve corresponder ao token)
-	- `id_disciplina` (int, opcional): ID da disciplina
-	- `bimestre` (int, opcional): Número do bimestre (1-4)
-	- `nota` (float, opcional): Valor da nota (0-10)
+	- `bimestre` (int, opcional): Número do bimestre
+	- `nota` (string, opcional): Valor da nota
+	- `disciplina` (string, opcional): Nome da disciplina (máximo 100 caracteres)
 
 	**Restrições:**
 	- Nota deve existir e pertencer ao usuário autenticado
-	- Se id_disciplina for fornecido, disciplina deve existir
-	- Se RA for fornecido, deve corresponder ao do usuário autenticado
 
 	**Respostas:**
 	- 200: Nota atualizada com sucesso
-	- 400: Erro de validação, disciplina não encontrada ou RA inválido
+	- 400: Erro de validação
 	- 403: Usuário não tem permissão para atualizar esta nota
 	- 404: Nota não encontrada
 	- 401: Token ausente ou inválido
 	"""
 	try:
 		nota_existente = _validar_nota_pertence_usuario(db, id_nota, str(usuario_autenticado.ra))
-
-		# Validação: se RA for atualizado, deve corresponder ao usuário autenticado
-		if nota_update.ra is not None and nota_update.ra != str(usuario_autenticado.ra):
-			raise ErroAoAtualizarNota("Você só pode atualizar notas com seu próprio RA")
-
-		# Validação: se disciplina for atualizada, deve existir
-		if nota_update.id_disciplina is not None:
-			_validar_disciplina_existe(db, nota_update.id_disciplina)
 
 		# Aplicar atualizações
 		nota_atualizada = _aplicar_atualizacoes_parciais(nota_existente, nota_update)
@@ -410,7 +319,7 @@ def atualizar_nota(
 			success=True,
 			message="Nota atualizada com sucesso",
 		)
-	except (NotaNaoEncontrada, DisciplinaNaoEncontrada, ErroAoAtualizarNota):
+	except (NotaNaoEncontrada, ErroAoAtualizarNota):
 		raise
 	except Exception as e:
 		raise ErroAoAtualizarNota(str(e))
@@ -433,20 +342,17 @@ def atualizar_parcial_nota(
 	- `id_nota` (int): ID único da nota a atualizar
 
 	**Body (todos os campos opcionais):**
-	- `ra` (string, opcional): RA do aluno (deve corresponder ao token)
-	- `id_disciplina` (int, opcional): ID da disciplina
-	- `bimestre` (int, opcional): Número do bimestre (1-4)
-	- `nota` (float, opcional): Valor da nota (0-10)
+	- `bimestre` (int, opcional): Número do bimestre
+	- `nota` (string, opcional): Valor da nota
+	- `disciplina` (string, opcional): Nome da disciplina (máximo 100 caracteres)
 
 	**Restrições:**
-	- Nota deve existir e pertencer ao usuário autenticado
-	- Se id_disciplina for fornecido, disciplina deve existir
-	- Se RA for fornecido, deve corresponder ao do usuário autenticado
+	- Nota deve existir e pertença ao usuário autenticado
 	- Apenas campos fornecidos serão atualizados
 
 	**Respostas:**
 	- 200: Nota atualizada com sucesso
-	- 400: Erro de validação, disciplina não encontrada, RA inválido ou nenhum dado fornecido
+	- 400: Erro de validação ou nenhum dado fornecido
 	- 403: Usuário não tem permissão para atualizar esta nota
 	- 404: Nota não encontrada
 	- 401: Token ausente ou inválido
@@ -459,14 +365,6 @@ def atualizar_parcial_nota(
 		if not update_data:
 			raise ErroAoAtualizarNota("Nenhum dado fornecido para atualização")
 
-		# Validação: se RA for atualizado, deve corresponder ao usuário autenticado
-		if "ra" in update_data and update_data["ra"] is not None and update_data["ra"] != str(usuario_autenticado.ra):
-			raise ErroAoAtualizarNota("Você só pode atualizar notas com seu próprio RA")
-
-		# Validação: se disciplina for atualizada, deve existir
-		if "id_disciplina" in update_data and update_data["id_disciplina"] is not None:
-			_validar_disciplina_existe(db, update_data["id_disciplina"])
-
 		# Aplicar atualizações
 		nota_atualizada = _aplicar_atualizacoes_parciais(nota_existente, nota_update)
 
@@ -478,7 +376,7 @@ def atualizar_parcial_nota(
 			success=True,
 			message="Nota atualizada parcialmente com sucesso",
 		)
-	except (NotaNaoEncontrada, DisciplinaNaoEncontrada, ErroAoAtualizarNota):
+	except (NotaNaoEncontrada, ErroAoAtualizarNota):
 		raise
 	except Exception as e:
 		raise ErroAoAtualizarNota(str(e))

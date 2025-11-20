@@ -6,16 +6,14 @@ incluindo: cliente de teste, banco de dados, usuários de teste, e tokens JWT.
 """
 
 import pytest
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
-from datetime import datetime, timedelta
-import jwt
+from datetime import datetime
 
 from app.database import Base, get_db
 from app.main import app
 from app.models import Usuario, Instituicao, Curso, TipoData
-from app.schemas import UsuarioCreate
 from app.auth import criar_access_token, criar_refresh_token
 from app.crud import hash_senha
 from fastapi.testclient import TestClient
@@ -23,6 +21,7 @@ from fastapi.testclient import TestClient
 # ============================================================================
 # CONFIGURAÇÃO DE BANCO DE DADOS
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def db_engine():
@@ -62,6 +61,7 @@ def client(db_session):
     Cliente de teste FastAPI com BD mockado (escopo: função).
     Injeta sessão de teste no dependency override.
     """
+
     def override_get_db():
         yield db_session
 
@@ -74,15 +74,14 @@ def client(db_session):
 # DADOS DE TESTE - INSTITUIÇÕES
 # ============================================================================
 
+
 @pytest.fixture
 def instituicao_teste(db_session: Session) -> Instituicao:
     """
     Criar instituição de teste padrão.
     Usada como padrão para criar usuários.
     """
-    instituicao = Instituicao(
-        nome="Universidade Teste"
-    )
+    instituicao = Instituicao(nome="Universidade Teste")
     db_session.add(instituicao)
     db_session.commit()
     db_session.refresh(instituicao)
@@ -113,8 +112,7 @@ def curso_teste(db_session: Session, instituicao_teste: Instituicao) -> Curso:
     Associado à instituição de teste.
     """
     curso = Curso(
-        nome="Engenharia de Software",
-        id_instituicao=instituicao_teste.id_instituicao
+        nome="Engenharia de Software", id_instituicao=instituicao_teste.id_instituicao
     )
     db_session.add(curso)
     db_session.commit()
@@ -125,6 +123,7 @@ def curso_teste(db_session: Session, instituicao_teste: Instituicao) -> Curso:
 # ============================================================================
 # DADOS DE TESTE - USUÁRIOS
 # ============================================================================
+
 
 @pytest.fixture
 def usuario_teste_data() -> dict:
@@ -146,7 +145,12 @@ def usuario_teste_data() -> dict:
 
 
 @pytest.fixture
-def usuario_teste(db_session: Session, instituicao_teste: Instituicao, curso_teste: Curso, tipo_data_teste) -> Usuario:
+def usuario_teste(
+    db_session: Session,
+    instituicao_teste: Instituicao,
+    curso_teste: Curso,
+    tipo_data_teste,
+) -> Usuario:
     """
     Criar usuário de teste padrão no BD (escopo: função).
     Usado para testes de endpoints autenticados.
@@ -169,7 +173,12 @@ def usuario_teste(db_session: Session, instituicao_teste: Instituicao, curso_tes
 
 
 @pytest.fixture
-def usuario_teste_2(db_session: Session, instituicao_teste: Instituicao, curso_teste: Curso, tipo_data_teste) -> Usuario:
+def usuario_teste_2(
+    db_session: Session,
+    instituicao_teste: Instituicao,
+    curso_teste: Curso,
+    tipo_data_teste,
+) -> Usuario:
     """
     Criar segundo usuário de teste (para testes de isolamento).
     """
@@ -193,6 +202,7 @@ def usuario_teste_2(db_session: Session, instituicao_teste: Instituicao, curso_t
 # ============================================================================
 # AUTENTICAÇÃO - TOKENS
 # ============================================================================
+
 
 @pytest.fixture
 def access_token_usuario_teste(usuario_teste: Usuario) -> str:
@@ -233,6 +243,7 @@ def headers_autenticado_usuario_2(usuario_teste_2: Usuario) -> dict:
 # MARCADORES CUSTOMIZADOS
 # ============================================================================
 
+
 def pytest_configure(config):
     """
     Registrar marcadores customizados para categorizar testes.
@@ -240,12 +251,8 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "integration: testes de integração com múltiplos endpoints"
     )
-    config.addinivalue_line(
-        "markers", "unit: testes unitários de endpoints isolados"
-    )
-    config.addinivalue_line(
-        "markers", "auth: testes de autenticação e autorização"
-    )
+    config.addinivalue_line("markers", "unit: testes unitários de endpoints isolados")
+    config.addinivalue_line("markers", "auth: testes de autenticação e autorização")
     config.addinivalue_line(
         "markers", "crud: testes de criação, leitura, atualização, deleção"
     )

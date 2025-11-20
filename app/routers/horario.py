@@ -18,60 +18,69 @@ router = APIRouter(
 # EXCEÇÕES CUSTOMIZADAS
 # ============================================================================
 
+
 class HorarioNaoEncontrado(HTTPException):
     """Horário não encontrado"""
+
     def __init__(self):
         super().__init__(status_code=404, detail="Horário não encontrado")
 
 
 class ErroAoCriarHorario(HTTPException):
     """Erro ao criar horário"""
+
     def __init__(self, detail: str):
         super().__init__(status_code=400, detail=detail)
 
 
 class ErroAoAtualizarHorario(HTTPException):
     """Erro ao atualizar horário"""
+
     def __init__(self, detail: str):
         super().__init__(status_code=400, detail=detail)
 
 
 class ErroAoDeletarHorario(HTTPException):
     """Erro ao deletar horário"""
+
     def __init__(self):
         super().__init__(status_code=400, detail="Erro ao deletar horário")
 
 
 class PermissaoNegada(HTTPException):
     """Usuário não tem permissão para acessar este horário"""
+
     def __init__(self):
-        super().__init__(status_code=403, detail="Você não tem permissão para acessar este horário")
+        super().__init__(
+            status_code=403, detail="Você não tem permissão para acessar este horário"
+        )
 
 
 # ============================================================================
 # VALIDADORES (Responsabilidade Única)
 # ============================================================================
 
+
 def _validar_horario_existe(db: Session, id_horario: int) -> models.Horario:
     """Valida se horário existe. Retorna horário ou lança exceção."""
-    horario = db.query(models.Horario).filter(models.Horario.id_horario == id_horario).first()
+    horario = (
+        db.query(models.Horario).filter(models.Horario.id_horario == id_horario).first()
+    )
     if not horario:
         raise HorarioNaoEncontrado()
     return horario
 
 
 def _validar_horario_pertence_usuario(
-    db: Session,
-    id_horario: int,
-    ra_usuario: str
+    db: Session, id_horario: int, ra_usuario: str
 ) -> models.Horario:
     """Valida se horário existe e pertence ao usuário. Retorna horário ou lança exceção."""
     horario = _validar_horario_existe(db, id_horario)
-    
+
     # Verificar se o horário pertence ao usuário autenticado (comparar por RA)
     if str(horario.ra) != str(ra_usuario):
         raise PermissaoNegada()
-    
+
     return horario
 
 

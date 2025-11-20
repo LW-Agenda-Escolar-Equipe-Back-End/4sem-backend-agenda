@@ -473,7 +473,8 @@ def atualizar_usuario(
             else usuario_autenticado
         )
         usuario_atualizado = crud.atualizar_usuario(db, id_usuario, usuario)
-        _anexar_nomes_usuario(usuario_atualizado)
+        if usuario_atualizado:
+            _anexar_nomes_usuario(usuario_atualizado)
         return schemas.GenericResponse(
             data=usuario_atualizado,
             success=True,
@@ -522,7 +523,8 @@ def atualizar_usuario_parcial(
             else usuario_autenticado
         )
         usuario_atualizado = crud.atualizar_usuario(db, id_usuario, usuario)
-        _anexar_nomes_usuario(usuario_atualizado)
+        if usuario_atualizado:
+            _anexar_nomes_usuario(usuario_atualizado)
         return schemas.GenericResponse(
             data=usuario_atualizado,
             success=True,

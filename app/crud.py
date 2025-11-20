@@ -451,6 +451,11 @@ def criar_calendario(db: Session, calendario: schemas.CalendarioCreate) -> model
         raise
 
 
+def obter_tipo_data(db: Session, id_tipo_data: int) -> Optional[models.TipoData]:
+    """Obter tipo de data por ID."""
+    return db.query(models.TipoData).filter(models.TipoData.id_tipo_data == id_tipo_data).first()
+
+
 def obter_calendario(db: Session, id_data_evento: int) -> Optional[models.Calendario]:
     """Obter evento de calendário por ID."""
     return (

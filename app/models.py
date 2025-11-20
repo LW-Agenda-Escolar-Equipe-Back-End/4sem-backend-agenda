@@ -161,7 +161,7 @@ class Anotacao(Base):
     ra = Column(String(13), ForeignKey("usuario.ra"), nullable=False, index=True)
     titulo = Column(String(50), nullable=False)
     anotacao = Column(String(255), nullable=False)
-    dt_anotacao = Column(Date, nullable=False, default=func.now())
+    dt_anotacao = Column(Date, nullable=False, default=func.current_date())
 
     # Relacionamento
     usuario = relationship("Usuario", back_populates="anotacoes")

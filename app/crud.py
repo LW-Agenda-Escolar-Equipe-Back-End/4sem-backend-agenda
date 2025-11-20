@@ -9,22 +9,26 @@ from . import models, schemas
 # UTILITÁRIOS DE SEGURANÇA
 # ============================================================================
 
+
 def hash_senha(senha: str) -> str:
     """Gera hash bcrypt da senha"""
     salt = bcrypt.gensalt(rounds=12)
-    return bcrypt.hashpw(senha.encode('utf-8'), salt).decode('utf-8')
+    return bcrypt.hashpw(senha.encode("utf-8"), salt).decode("utf-8")
 
 
 def verificar_senha(senha: str, senha_hash: str) -> bool:
     """Verifica se a senha corresponde ao hash"""
-    return bcrypt.checkpw(senha.encode('utf-8'), senha_hash.encode('utf-8'))
+    return bcrypt.checkpw(senha.encode("utf-8"), senha_hash.encode("utf-8"))
 
 
 # ============================================================================
 # INSTITUIÇÃO
 # ============================================================================
 
-def criar_instituicao(db: Session, instituicao: schemas.InstituicaoCreate) -> models.Instituicao:
+
+def criar_instituicao(
+    db: Session, instituicao: schemas.InstituicaoCreate
+) -> models.Instituicao:
     """Criar nova instituição."""
     db_instituicao = models.Instituicao(**instituicao.model_dump())
     db.add(db_instituicao)
@@ -35,25 +39,33 @@ def criar_instituicao(db: Session, instituicao: schemas.InstituicaoCreate) -> mo
 
 def obter_instituicao(db: Session, id_instituicao: int) -> Optional[models.Instituicao]:
     """Obter instituição por ID."""
-    return db.query(models.Instituicao).filter(models.Instituicao.id_instituicao == id_instituicao).first()
+    return (
+        db.query(models.Instituicao)
+        .filter(models.Instituicao.id_instituicao == id_instituicao)
+        .first()
+    )
 
 
-def obter_instituicoes(db: Session, skip: int = 0, limit: int = 100) -> List[models.Instituicao]:
+def obter_instituicoes(
+    db: Session, skip: int = 0, limit: int = 100
+) -> List[models.Instituicao]:
     """Listar todas as instituições com paginação."""
     return db.query(models.Instituicao).offset(skip).limit(limit).all()
 
 
 def obter_ou_criar_instituicao_por_nome(db: Session, nome: str) -> models.Instituicao:
     """Obter instituição por nome ou criar se não existir."""
-    db_instituicao = db.query(models.Instituicao).filter(models.Instituicao.nome == nome).first()
-    
+    db_instituicao = (
+        db.query(models.Instituicao).filter(models.Instituicao.nome == nome).first()
+    )
+
     if not db_instituicao:
         # Criar nova instituição se não existir
         db_instituicao = models.Instituicao(nome=nome)
         db.add(db_instituicao)
         db.commit()
         db.refresh(db_instituicao)
-    
+
     return db_instituicao
 
 
@@ -83,6 +95,7 @@ def deletar_instituicao(db: Session, id_instituicao: int) -> bool:
 # ============================================================================
 # CURSO
 # ============================================================================
+
 
 def criar_curso(db: Session, curso: schemas.CursoCreate) -> models.Curso:
     """Criar novo curso."""
@@ -116,7 +129,9 @@ def obter_cursos_por_instituicao(
     )
 
 
-def atualizar_curso(db: Session, id_curso: int, curso: schemas.CursoCreate) -> Optional[models.Curso]:
+def atualizar_curso(
+    db: Session, id_curso: int, curso: schemas.CursoCreate
+) -> Optional[models.Curso]:
     """Atualizar curso."""
     db_curso = obter_curso(db, id_curso)
     if db_curso:
@@ -127,43 +142,56 @@ def atualizar_curso(db: Session, id_curso: int, curso: schemas.CursoCreate) -> O
     return db_curso
 
 
-def obter_ou_criar_curso_por_nome(db: Session, nome_curso: str, id_instituicao: int) -> models.Curso:
-	"""Obter curso por nome ou criar se não existir."""
-	try:
-		db_curso = db.query(models.Curso).filter(
-			models.Curso.nome == nome_curso,
-			models.Curso.id_instituicao == id_instituicao
-		).first()
-		
-		if not db_curso:
-			# Criar novo curso se não existir
-			db_curso = models.Curso(nome=nome_curso, id_instituicao=id_instituicao)
-			db.add(db_curso)
-			db.commit()
-			db.refresh(db_curso)
-		
-		return db_curso
-	except IntegrityError:
-		# Se houver erro de integridade (duplicação por race condition), fazer rollback e buscar novamente
-		db.rollback()
-		db_curso = db.query(models.Curso).filter(
-			models.Curso.nome == nome_curso,
-			models.Curso.id_instituicao == id_instituicao
-		).first()
-		return db_curso
+def obter_ou_criar_curso_por_nome(
+    db: Session, nome_curso: str, id_instituicao: int
+) -> models.Curso:
+    """Obter curso por nome ou criar se não existir."""
+    try:
+        db_curso = (
+            db.query(models.Curso)
+            .filter(
+                models.Curso.nome == nome_curso,
+                models.Curso.id_instituicao == id_instituicao,
+            )
+            .first()
+        )
+
+        if not db_curso:
+            # Criar novo curso se não existir
+            db_curso = models.Curso(nome=nome_curso, id_instituicao=id_instituicao)
+            db.add(db_curso)
+            db.commit()
+            db.refresh(db_curso)
+
+        return db_curso
+    except IntegrityError:
+        # Se houver erro de integridade (duplicação por race condition), fazer rollback e buscar novamente
+        db.rollback()
+        db_curso = (
+            db.query(models.Curso)
+            .filter(
+                models.Curso.nome == nome_curso,
+                models.Curso.id_instituicao == id_instituicao,
+            )
+            .first()
+        )
+        return db_curso
 
 
 def deletar_curso(db: Session, id_curso: int) -> bool:
-	"""Deletar curso."""
-	db_curso = obter_curso(db, id_curso)
-	if db_curso:
-		db.delete(db_curso)
-		db.commit()
-		return True
-	return False
+    """Deletar curso."""
+    db_curso = obter_curso(db, id_curso)
+    if db_curso:
+        db.delete(db_curso)
+        db.commit()
+        return True
+    return False
+
+
 # ============================================================================
 # DOCENTE
 # ============================================================================
+
 
 def criar_docente(db: Session, docente: schemas.DocenteCreate) -> models.Docente:
     """Criar novo docente."""
@@ -180,7 +208,9 @@ def criar_docente(db: Session, docente: schemas.DocenteCreate) -> models.Docente
 
 def obter_docente(db: Session, id_docente: int) -> Optional[models.Docente]:
     """Obter docente por ID."""
-    return db.query(models.Docente).filter(models.Docente.id_docente == id_docente).first()
+    return (
+        db.query(models.Docente).filter(models.Docente.id_docente == id_docente).first()
+    )
 
 
 def obter_docente_por_email(db: Session, email: str) -> Optional[models.Docente]:
@@ -188,7 +218,9 @@ def obter_docente_por_email(db: Session, email: str) -> Optional[models.Docente]
     return db.query(models.Docente).filter(models.Docente.email == email).first()
 
 
-def obter_docentes(db: Session, skip: int = 0, limit: int = 100) -> List[models.Docente]:
+def obter_docentes(
+    db: Session, skip: int = 0, limit: int = 100
+) -> List[models.Docente]:
     """Listar todos os docentes."""
     return db.query(models.Docente).offset(skip).limit(limit).all()
 
@@ -224,6 +256,7 @@ def deletar_docente(db: Session, id_docente: int) -> bool:
 # DISCENTE
 # ============================================================================
 
+
 def criar_discente(db: Session, discente: schemas.DiscenteCreate) -> models.Discente:
     """Criar novo discente."""
     try:
@@ -239,7 +272,11 @@ def criar_discente(db: Session, discente: schemas.DiscenteCreate) -> models.Disc
 
 def obter_discente(db: Session, id_discente: int) -> Optional[models.Discente]:
     """Obter discente por ID."""
-    return db.query(models.Discente).filter(models.Discente.id_discente == id_discente).first()
+    return (
+        db.query(models.Discente)
+        .filter(models.Discente.id_discente == id_discente)
+        .first()
+    )
 
 
 def obter_discente_por_email(db: Session, email: str) -> Optional[models.Discente]:
@@ -247,7 +284,9 @@ def obter_discente_por_email(db: Session, email: str) -> Optional[models.Discent
     return db.query(models.Discente).filter(models.Discente.email == email).first()
 
 
-def obter_discentes(db: Session, skip: int = 0, limit: int = 100) -> List[models.Discente]:
+def obter_discentes(
+    db: Session, skip: int = 0, limit: int = 100
+) -> List[models.Discente]:
     """Listar todos os discentes."""
     return db.query(models.Discente).offset(skip).limit(limit).all()
 
@@ -281,6 +320,7 @@ def atualizar_discente(
         db.rollback()
         raise
 
+
 def atualizar_discente_parcial(
     db: Session, id_discente: int, discente: schemas.DiscenteUpdate
 ) -> Optional[models.Discente]:
@@ -313,19 +353,22 @@ def deletar_discente(db: Session, id_discente: int) -> bool:
 # USUÁRIO
 # ============================================================================
 
+
 def criar_usuario(db: Session, usuario: schemas.UsuarioCreate) -> models.Usuario:
     """Criar novo usuário (aluno). Cria instituição automaticamente se não existir."""
     try:
         # Obter ou criar instituição baseado no nome fornecido
-        db_instituicao = obter_ou_criar_instituicao_por_nome(db, usuario.nome_instituicao)
-        
+        db_instituicao = obter_ou_criar_instituicao_por_nome(
+            db, usuario.nome_instituicao
+        )
+
         # Preparar dados do usuário
         usuario_data = usuario.model_dump(exclude={"nome_instituicao"})
         usuario_data["id_instituicao"] = db_instituicao.id_instituicao
-        
+
         # Hash da senha
         usuario_data["senha_hash"] = hash_senha(usuario_data["senha_hash"])
-        
+
         # Criar usuário
         db_usuario = models.Usuario(**usuario_data)
         db.add(db_usuario)
@@ -339,7 +382,9 @@ def criar_usuario(db: Session, usuario: schemas.UsuarioCreate) -> models.Usuario
 
 def obter_usuario(db: Session, id_usuario: int) -> Optional[models.Usuario]:
     """Obter usuário por ID."""
-    return db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    return (
+        db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    )
 
 
 def obter_usuario_por_ra(db: Session, ra: str) -> Optional[models.Usuario]:
@@ -357,7 +402,9 @@ def obter_usuario_por_username(db: Session, username: str) -> Optional[models.Us
     return db.query(models.Usuario).filter(models.Usuario.username == username).first()
 
 
-def obter_usuarios(db: Session, skip: int = 0, limit: int = 100) -> List[models.Usuario]:
+def obter_usuarios(
+    db: Session, skip: int = 0, limit: int = 100
+) -> List[models.Usuario]:
     """Listar todos os usuários."""
     return db.query(models.Usuario).offset(skip).limit(limit).all()
 
@@ -389,41 +436,43 @@ def obter_usuarios_por_curso(
 
 
 def atualizar_usuario(
-	db: Session, id_usuario: int, usuario: schemas.UsuarioUpdate
+    db: Session, id_usuario: int, usuario: schemas.UsuarioUpdate
 ) -> Optional[models.Usuario]:
-	"""Atualizar usuário (apenas campos fornecidos)."""
-	try:
-		db_usuario = obter_usuario(db, id_usuario)
-		if db_usuario:
-			# Atualizar apenas campos não-nulos
-			dados_atualizacao = usuario.model_dump(exclude_unset=True)
-			
-			# Se nome_curso foi fornecido, resolver para id_curso
-			if "nome_curso" in dados_atualizacao and dados_atualizacao["nome_curso"]:
-				id_instituicao: int = db_usuario.id_instituicao  # type: ignore
-				db_curso = obter_ou_criar_curso_por_nome(
-					db, 
-					dados_atualizacao["nome_curso"],
-					id_instituicao
-				)
-				dados_atualizacao["id_curso"] = db_curso.id_curso
-				del dados_atualizacao["nome_curso"]
-			else:
-				# Remover nome_curso se não foi fornecido
-				dados_atualizacao.pop("nome_curso", None)
-			
-			# Se senha foi fornecida, fazer hash
-			if "senha_hash" in dados_atualizacao and dados_atualizacao["senha_hash"]:
-				dados_atualizacao["senha_hash"] = hash_senha(dados_atualizacao["senha_hash"])
-			
-			for key, value in dados_atualizacao.items():
-				setattr(db_usuario, key, value)
-			db.commit()
-			db.refresh(db_usuario)
-		return db_usuario
-	except IntegrityError:
-		db.rollback()
-		raise
+    """Atualizar usuário (apenas campos fornecidos)."""
+    try:
+        db_usuario = obter_usuario(db, id_usuario)
+        if db_usuario:
+            # Atualizar apenas campos não-nulos
+            dados_atualizacao = usuario.model_dump(exclude_unset=True)
+
+            # Se nome_curso foi fornecido, resolver para id_curso
+            if "nome_curso" in dados_atualizacao and dados_atualizacao["nome_curso"]:
+                id_instituicao: int = db_usuario.id_instituicao  # type: ignore
+                db_curso = obter_ou_criar_curso_por_nome(
+                    db, dados_atualizacao["nome_curso"], id_instituicao
+                )
+                dados_atualizacao["id_curso"] = db_curso.id_curso
+                del dados_atualizacao["nome_curso"]
+            else:
+                # Remover nome_curso se não foi fornecido
+                dados_atualizacao.pop("nome_curso", None)
+
+            # Se senha foi fornecida, fazer hash
+            if "senha_hash" in dados_atualizacao and dados_atualizacao["senha_hash"]:
+                dados_atualizacao["senha_hash"] = hash_senha(
+                    dados_atualizacao["senha_hash"]
+                )
+
+            for key, value in dados_atualizacao.items():
+                setattr(db_usuario, key, value)
+            db.commit()
+            db.refresh(db_usuario)
+        return db_usuario
+    except IntegrityError:
+        db.rollback()
+        raise
+
+
 def deletar_usuario(db: Session, id_usuario: int) -> bool:
     """Deletar usuário."""
     db_usuario = obter_usuario(db, id_usuario)
@@ -438,7 +487,10 @@ def deletar_usuario(db: Session, id_usuario: int) -> bool:
 # CALENDÁRIO
 # ============================================================================
 
-def criar_calendario(db: Session, calendario: schemas.CalendarioCreate) -> models.Calendario:
+
+def criar_calendario(
+    db: Session, calendario: schemas.CalendarioCreate
+) -> models.Calendario:
     """Criar novo evento de calendário."""
     try:
         db_calendario = models.Calendario(**calendario.model_dump())
@@ -453,13 +505,19 @@ def criar_calendario(db: Session, calendario: schemas.CalendarioCreate) -> model
 
 def obter_tipo_data(db: Session, id_tipo_data: int) -> Optional[models.TipoData]:
     """Obter tipo de data por ID."""
-    return db.query(models.TipoData).filter(models.TipoData.id_tipo_data == id_tipo_data).first()
+    return (
+        db.query(models.TipoData)
+        .filter(models.TipoData.id_tipo_data == id_tipo_data)
+        .first()
+    )
 
 
 def obter_calendario(db: Session, id_data_evento: int) -> Optional[models.Calendario]:
     """Obter evento de calendário por ID."""
     return (
-        db.query(models.Calendario).filter(models.Calendario.id_data_evento == id_data_evento).first()
+        db.query(models.Calendario)
+        .filter(models.Calendario.id_data_evento == id_data_evento)
+        .first()
     )
 
 
@@ -482,7 +540,9 @@ def obter_calendarios_por_tipo(
     """Listar eventos de calendário por tipo."""
     return (
         db.query(models.Calendario)
-        .filter(models.Calendario.ra == ra, models.Calendario.id_tipo_data == id_tipo_data)
+        .filter(
+            models.Calendario.ra == ra, models.Calendario.id_tipo_data == id_tipo_data
+        )
         .offset(skip)
         .limit(limit)
         .all()
@@ -537,6 +597,7 @@ def deletar_calendario(db: Session, id_data_evento: int) -> bool:
 # HORÁRIO
 # ============================================================================
 
+
 def criar_horario(db: Session, horario: schemas.HorarioCreate) -> models.Horario:
     """Criar novo horário."""
     try:
@@ -552,10 +613,14 @@ def criar_horario(db: Session, horario: schemas.HorarioCreate) -> models.Horario
 
 def obter_horario(db: Session, id_horario: int) -> Optional[models.Horario]:
     """Obter horário por ID."""
-    return db.query(models.Horario).filter(models.Horario.id_horario == id_horario).first()
+    return (
+        db.query(models.Horario).filter(models.Horario.id_horario == id_horario).first()
+    )
 
 
-def obter_horarios_por_usuario(db: Session, ra: str, skip: int = 0, limit: int = 100) -> List[models.Horario]:
+def obter_horarios_por_usuario(
+    db: Session, ra: str, skip: int = 0, limit: int = 100
+) -> List[models.Horario]:
     """Listar horários do usuário."""
     return (
         db.query(models.Horario)
@@ -566,7 +631,9 @@ def obter_horarios_por_usuario(db: Session, ra: str, skip: int = 0, limit: int =
     )
 
 
-def obter_horario_por_dia(db: Session, ra: str, dia_semana: int) -> Optional[models.Horario]:
+def obter_horario_por_dia(
+    db: Session, ra: str, dia_semana: int
+) -> Optional[models.Horario]:
     """Obter horário de um dia específico."""
     return (
         db.query(models.Horario)
@@ -606,6 +673,7 @@ def deletar_horario(db: Session, id_horario: int) -> bool:
 # NOTA
 # ============================================================================
 
+
 def criar_nota(db: Session, nota: schemas.NotaCreate) -> models.Nota:
     """Criar nova nota."""
     try:
@@ -624,10 +692,16 @@ def obter_nota(db: Session, id_nota: int) -> Optional[models.Nota]:
     return db.query(models.Nota).filter(models.Nota.id_nota == id_nota).first()
 
 
-def obter_notas_por_usuario(db: Session, ra: str, skip: int = 0, limit: int = 100) -> List[models.Nota]:
+def obter_notas_por_usuario(
+    db: Session, ra: str, skip: int = 0, limit: int = 100
+) -> List[models.Nota]:
     """Listar notas do usuário."""
     return (
-        db.query(models.Nota).filter(models.Nota.ra == ra).offset(skip).limit(limit).all()
+        db.query(models.Nota)
+        .filter(models.Nota.ra == ra)
+        .offset(skip)
+        .limit(limit)
+        .all()
     )
 
 
@@ -657,7 +731,9 @@ def obter_notas_por_bimestre(
     )
 
 
-def atualizar_nota(db: Session, id_nota: int, nota: schemas.NotaCreate) -> Optional[models.Nota]:
+def atualizar_nota(
+    db: Session, id_nota: int, nota: schemas.NotaCreate
+) -> Optional[models.Nota]:
     """Atualizar nota."""
     try:
         db_nota = obter_nota(db, id_nota)
@@ -686,6 +762,7 @@ def deletar_nota(db: Session, id_nota: int) -> bool:
 # ANOTAÇÃO
 # ============================================================================
 
+
 def criar_anotacao(db: Session, anotacao: schemas.AnotacaoCreate) -> models.Anotacao:
     """Criar nova anotação."""
     try:
@@ -701,7 +778,11 @@ def criar_anotacao(db: Session, anotacao: schemas.AnotacaoCreate) -> models.Anot
 
 def obter_anotacao(db: Session, id_anotacao: int) -> Optional[models.Anotacao]:
     """Obter anotação por ID."""
-    return db.query(models.Anotacao).filter(models.Anotacao.id_anotacao == id_anotacao).first()
+    return (
+        db.query(models.Anotacao)
+        .filter(models.Anotacao.id_anotacao == id_anotacao)
+        .first()
+    )
 
 
 def obter_anotacoes_por_usuario(
@@ -709,7 +790,11 @@ def obter_anotacoes_por_usuario(
 ) -> List[models.Anotacao]:
     """Listar anotações do usuário."""
     return (
-        db.query(models.Anotacao).filter(models.Anotacao.ra == ra).offset(skip).limit(limit).all()
+        db.query(models.Anotacao)
+        .filter(models.Anotacao.ra == ra)
+        .offset(skip)
+        .limit(limit)
+        .all()
     )
 
 

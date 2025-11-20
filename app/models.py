@@ -104,9 +104,6 @@ class Horario(Base):
 class Docente(Base):
 	"""Modelo de Docente (Professor)"""
 	__tablename__ = "docente"
-	__table_args__ = (
-		UniqueConstraint("email", name="uq_docente_email"),
-	)
 
 	id_docente = Column(Integer, primary_key=True, index=True)
 	nome = Column(String(50), nullable=False)

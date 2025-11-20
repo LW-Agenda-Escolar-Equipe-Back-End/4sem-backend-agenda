@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Numeric, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .database import Base
@@ -8,8 +8,10 @@ from .database import Base
 # MODELOS ORM - SQLALCHEMY
 # ============================================================================
 
+
 class Instituicao(Base):
     """Modelo de Instituição de Ensino"""
+
     __tablename__ = "instituicao"
 
     id_instituicao = Column(Integer, primary_key=True, index=True)
@@ -22,6 +24,7 @@ class Instituicao(Base):
 
 class Usuario(Base):
     """Modelo de Usuário (Aluno)"""
+
     __tablename__ = "usuario"
     __table_args__ = (
         UniqueConstraint("ra", name="uq_usuario_ra"),
@@ -35,7 +38,9 @@ class Usuario(Base):
     email = Column(String(40), nullable=False, index=True)
     username = Column(String(20), nullable=False, index=True)
     senha_hash = Column(String(60), nullable=False)
-    id_instituicao = Column(Integer, ForeignKey("instituicao.id_instituicao"), nullable=False)
+    id_instituicao = Column(
+        Integer, ForeignKey("instituicao.id_instituicao"), nullable=False
+    )
     dt_nascimento = Column(Date, nullable=True)
     tel_celular = Column(String(15), nullable=True)
     id_curso = Column(Integer, ForeignKey("curso.id_curso"), nullable=True)
@@ -53,10 +58,9 @@ class Usuario(Base):
 
 class TipoData(Base):
     """Modelo de Tipo de Data (Falta, Não Letivo, Letivo)"""
+
     __tablename__ = "tipo_data"
-    __table_args__ = (
-        UniqueConstraint("nome", name="uq_tipo_data_nome"),
-    )
+    __table_args__ = (UniqueConstraint("nome", name="uq_tipo_data_nome"),)
 
     id_tipo_data = Column(Integer, primary_key=True, index=True)
     nome = Column(String(20), nullable=False)
@@ -67,6 +71,7 @@ class TipoData(Base):
 
 class Calendario(Base):
     """Modelo de Calendário Acadêmico"""
+
     __tablename__ = "calendario"
 
     id_data_evento = Column(Integer, primary_key=True, index=True)
@@ -81,11 +86,14 @@ class Calendario(Base):
 
 class Curso(Base):
     """Modelo de Curso"""
+
     __tablename__ = "curso"
 
     id_curso = Column(Integer, primary_key=True, index=True)
     nome = Column(String(80), nullable=False)
-    id_instituicao = Column(Integer, ForeignKey("instituicao.id_instituicao"), nullable=False)
+    id_instituicao = Column(
+        Integer, ForeignKey("instituicao.id_instituicao"), nullable=False
+    )
 
     # Relacionamentos
     instituicao = relationship("Instituicao", back_populates="cursos")
@@ -94,6 +102,7 @@ class Curso(Base):
 
 class Horario(Base):
     """Modelo de Horário de Aulas"""
+
     __tablename__ = "horario"
 
     id_horario = Column(Integer, primary_key=True, index=True)
@@ -108,6 +117,7 @@ class Horario(Base):
 
 class Docente(Base):
     """Modelo de Docente (Professor)"""
+
     __tablename__ = "docente"
 
     id_docente = Column(Integer, primary_key=True, index=True)
@@ -122,10 +132,9 @@ class Docente(Base):
 
 class Discente(Base):
     """Modelo de Discente (Aluno - sem login)"""
+
     __tablename__ = "discente"
-    __table_args__ = (
-        UniqueConstraint("email", name="uq_discente_email"),
-    )
+    __table_args__ = (UniqueConstraint("email", name="uq_discente_email"),)
 
     id_discente = Column(Integer, primary_key=True, index=True)
     nome = Column(String(50), nullable=False)
@@ -141,6 +150,7 @@ class Discente(Base):
 
 class Nota(Base):
     """Modelo de Nota de Avaliação"""
+
     __tablename__ = "nota"
 
     id_nota = Column(Integer, primary_key=True, index=True)
@@ -155,6 +165,7 @@ class Nota(Base):
 
 class Anotacao(Base):
     """Modelo de Anotação/Memo do Usuário"""
+
     __tablename__ = "anotacao"
 
     id_anotacao = Column(Integer, primary_key=True, index=True)

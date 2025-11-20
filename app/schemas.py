@@ -275,17 +275,27 @@ class Calendario(BaseSchema):
 # ---- HORÁRIO
 class HorarioCreate(BaseSchema):
     dia_semana: DiaSemanaEnum
+    numero_aula: Optional[int] = Field(None, ge=1, le=4, description="Número da aula (1-4)")
+    disciplina: Optional[str] = Field(None, max_length=100)
 
 
 class Horario(BaseSchema):
     id_horario: int
     ra: RA
     dia_semana: DiaSemanaEnum
+    numero_aula: Optional[int] = Field(None, ge=1, le=4, description="Número da aula (1-4)")
+    disciplina: Optional[str] = Field(None, max_length=100)
 
     @field_validator("ra")
     @classmethod
     def validar_ra_campo(cls, v):
         return validar_ra(v)
+
+
+class HorarioUpdate(BaseSchema):
+    dia_semana: Optional[DiaSemanaEnum] = None
+    numero_aula: Optional[int] = Field(None, ge=1, le=4, description="Número da aula (1-4)")
+    disciplina: Optional[str] = Field(None, max_length=100)
 
 
 # ---- NOTA

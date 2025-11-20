@@ -15,6 +15,7 @@ from .routers import (
 	anotacao,
 	discentes,
 	notas,
+	horario,
 )
 
 # ============================================================================
@@ -65,6 +66,7 @@ app.include_router(notas.router, prefix="/api/v1/notas")
 app.include_router(discentes.router, prefix="/api/v1/discentes")
 app.include_router(anotacao.router, prefix="/api/v1/anotacao")
 app.include_router(docentes.router, prefix="/api/v1/docentes")
+app.include_router(horario.router, prefix="/api/v1/horario")
 app.include_router(tipo_data.router, prefix="/api/v1/tipo-data")
 app.include_router(calendario.router, prefix="/api/v1/calendario")
 

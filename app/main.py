@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-from .database import engine, Base
 from . import models  # noqa: F401 - Necessário para registrar os modelos no SQLAlchemy
 from . import constants
 from .routers import (
@@ -64,6 +63,7 @@ app.include_router(calendario.router, prefix="/api/v1/calendario")
 # ============================================================================
 # ROTAS PRINCIPAIS
 # ============================================================================
+
 
 @app.get("/", tags=["Health"])
 def homepage(request: Request):

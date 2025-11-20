@@ -109,8 +109,8 @@ def criar_nota(
 	- Requer token JWT no header `Authorization: Bearer <token>`
 
 	**Body:**
+	- `nota` (string): Valor da nota (obrigatório, 1-255 caracteres)
 	- `bimestre` (int, opcional): Número do bimestre
-	- `nota` (string, opcional): Valor da nota
 	- `disciplina` (string, opcional): Nome da disciplina (máximo 100 caracteres)
 
 	**Restrições:**

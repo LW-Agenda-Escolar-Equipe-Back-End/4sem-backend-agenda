@@ -289,7 +289,7 @@ class Horario(BaseSchema):
 # ---- NOTA
 class NotaCreate(BaseSchema):
     bimestre: Optional[int] = None
-    nota: Optional[str] = Field(None, max_length=255)
+    nota: str = Field(..., min_length=1, max_length=255)
     disciplina: Optional[str] = Field(None, max_length=100)
 
 
@@ -297,7 +297,7 @@ class Nota(BaseSchema):
     id_nota: int
     ra: RA
     bimestre: Optional[int] = None
-    nota: Optional[str] = Field(None, max_length=255)
+    nota: str = Field(..., min_length=1, max_length=255)
     disciplina: Optional[str] = Field(None, max_length=100)
 
     @field_validator("ra")
@@ -308,7 +308,7 @@ class Nota(BaseSchema):
 #atualizar nota
 class NotaUpdate(BaseSchema):
     bimestre: Optional[int] = None
-    nota: Optional[str] = Field(None, max_length=255)
+    nota: Optional[str] = Field(None, min_length=1, max_length=255)
     disciplina: Optional[str] = Field(None, max_length=100)
 
 # ---- ANOTAÇÃO

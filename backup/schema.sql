@@ -106,8 +106,8 @@ CREATE INDEX IF NOT EXISTS idx_horario_ra ON horario(ra);
 CREATE TABLE IF NOT EXISTS nota (
     id_nota SERIAL PRIMARY KEY,
     ra VARCHAR(13) NOT NULL,
-    bimestre INTEGER NOT NULL,
-    nota VARCHAR(255),
+    bimestre INTEGER,
+    nota VARCHAR(255) NOT NULL,
     disciplina VARCHAR(100),
     FOREIGN KEY (ra) REFERENCES usuario(ra) ON DELETE CASCADE
 );

@@ -52,7 +52,6 @@ Docs: [`http://localhost:8000/docs`](http://localhost:8000/docs)
 - `/api/v1/usuario` - Gerenciamento de usuários
 - `/api/v1/docentes` - Gerenciamento de docentes
 - `/api/v1/discentes` - Gerenciamento de discentes
-- `/api/v1/disciplinas` - Gerenciamento de disciplinas
 - `/api/v1/notas` - Gerenciamento de notas
 - `/api/v1/tipo-data` - Tipos de datas
 - `/api/v1/calendario` - Calendário acadêmico
@@ -81,7 +80,6 @@ app/
     ├── anotacao.py
     ├── calendario.py
     ├── discentes.py
-    ├── disciplinas.py
     ├── docentes.py
     ├── health.py
     ├── notas.py

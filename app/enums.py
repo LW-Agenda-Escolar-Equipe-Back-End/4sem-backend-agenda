@@ -5,19 +5,20 @@ Substitui magic numbers por tipos strongly-typed, melhorando segurança
 e legibilidade do código.
 """
 
-from enum import IntEnum, Enum
+from enum import IntEnum
 
 
 class TipoDataEnum(IntEnum):
     """
     Tipos de datas no calendário acadêmico.
-    
+
     Substitui mágica números (1, 2, 3) por nomes descritivos.
     """
+
     FALTA = 1
     NAO_LETIVO = 2
     LETIVO = 3
-    
+
     @classmethod
     def descricao(cls, valor: int) -> str:
         """Retorna descrição legível do tipo de data."""
@@ -32,16 +33,17 @@ class TipoDataEnum(IntEnum):
 class DiaSemanaEnum(IntEnum):
     """
     Dias da semana.
-    
+
     Substitui números (1-6) por nomes descritivos.
     """
+
     SEGUNDA = 1
     TERCA = 2
     QUARTA = 3
     QUINTA = 4
     SEXTA = 5
     SABADO = 6
-    
+
     @classmethod
     def descricao(cls, valor: int) -> str:
         """Retorna nome legível do dia da semana."""
@@ -59,14 +61,15 @@ class DiaSemanaEnum(IntEnum):
 class NumeroAulaEnum(IntEnum):
     """
     Números de aulas do dia (tipicamente 4 aulas).
-    
+
     Substitui números (1-4) por nomes descritivos.
     """
+
     PRIMEIRA = 1
     SEGUNDA = 2
     TERCEIRA = 3
     QUARTA = 4
-    
+
     @classmethod
     def descricao(cls, valor: int) -> str:
         """Retorna nome legível do número da aula."""
@@ -83,11 +86,12 @@ class TipoBimestreEnum(IntEnum):
     """
     Bimestres do ano letivo (4 bimestres).
     """
+
     PRIMEIRO = 1
     SEGUNDO = 2
     TERCEIRO = 3
     QUARTO = 4
-    
+
     @classmethod
     def descricao(cls, valor: int) -> str:
         """Retorna nome legível do bimestre."""
@@ -104,6 +108,7 @@ class TipoModuloEnum(IntEnum):
     """
     Módulos acadêmicos (até 12 módulos possíveis).
     """
+
     MODULO_1 = 1
     MODULO_2 = 2
     MODULO_3 = 3
@@ -116,7 +121,7 @@ class TipoModuloEnum(IntEnum):
     MODULO_10 = 10
     MODULO_11 = 11
     MODULO_12 = 12
-    
+
     @classmethod
     def descricao(cls, valor: int) -> str:
         """Retorna nome legível do módulo."""

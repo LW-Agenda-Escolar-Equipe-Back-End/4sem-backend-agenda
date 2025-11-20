@@ -81,52 +81,6 @@ def deletar_instituicao(db: Session, id_instituicao: int) -> bool:
 
 
 # ============================================================================
-# TIPO DE DATA
-# ============================================================================
-
-def criar_tipo_data(db: Session, tipo_data: schemas.TipoDataCreate) -> models.TipoData:
-    """Criar novo tipo de data."""
-    db_tipo_data = models.TipoData(**tipo_data.model_dump())
-    db.add(db_tipo_data)
-    db.commit()
-    db.refresh(db_tipo_data)
-    return db_tipo_data
-
-
-def obter_tipo_data(db: Session, id_tipo_data: int) -> Optional[models.TipoData]:
-    """Obter tipo de data por ID."""
-    return db.query(models.TipoData).filter(models.TipoData.id_tipo_data == id_tipo_data).first()
-
-
-def obter_tipos_data(db: Session, skip: int = 0, limit: int = 100) -> List[models.TipoData]:
-    """Listar todos os tipos de data."""
-    return db.query(models.TipoData).offset(skip).limit(limit).all()
-
-
-def atualizar_tipo_data(
-    db: Session, id_tipo_data: int, tipo_data: schemas.TipoDataCreate
-) -> Optional[models.TipoData]:
-    """Atualizar tipo de data."""
-    db_tipo_data = obter_tipo_data(db, id_tipo_data)
-    if db_tipo_data:
-        for key, value in tipo_data.model_dump().items():
-            setattr(db_tipo_data, key, value)
-        db.commit()
-        db.refresh(db_tipo_data)
-    return db_tipo_data
-
-
-def deletar_tipo_data(db: Session, id_tipo_data: int) -> bool:
-    """Deletar tipo de data."""
-    db_tipo_data = obter_tipo_data(db, id_tipo_data)
-    if db_tipo_data:
-        db.delete(db_tipo_data)
-        db.commit()
-        return True
-    return False
-
-
-# ============================================================================
 # CURSO
 # ============================================================================
 

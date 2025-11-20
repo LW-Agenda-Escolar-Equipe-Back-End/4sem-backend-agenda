@@ -116,15 +116,7 @@ class Instituicao(BaseSchema):
     nome: str = Field(..., min_length=constants.INSTITUICAO_MIN_LENGTH, max_length=constants.INSTITUICAO_MAX_LENGTH)
 
 
-# ---- TIPO DE DATA
-class TipoDataCreate(BaseSchema):
-    nome: str = Field(..., min_length=constants.TIPO_DATA_MIN_LENGTH, max_length=constants.TIPO_DATA_MAX_LENGTH)
-
-
-class TipoData(BaseSchema):
-    id_tipo_data: int
-    nome: str = Field(..., min_length=constants.TIPO_DATA_MIN_LENGTH, max_length=constants.TIPO_DATA_MAX_LENGTH)
-
+# ---- CURSO
 
 class CursoCreate(BaseSchema):
     nome: str = Field(..., min_length=constants.INSTITUICAO_MIN_LENGTH, max_length=constants.INSTITUICAO_MAX_LENGTH)
@@ -134,6 +126,8 @@ class Curso(BaseSchema):
     id_curso: int
     nome: str = Field(..., min_length=constants.INSTITUICAO_MIN_LENGTH, max_length=constants.INSTITUICAO_MAX_LENGTH)
 
+
+# ---- DOCENTE
 
 class DocenteCreate(BaseSchema):
     nome: str = Field(..., min_length=constants.NOME_MIN_LENGTH, max_length=constants.NOME_MAX_LENGTH)

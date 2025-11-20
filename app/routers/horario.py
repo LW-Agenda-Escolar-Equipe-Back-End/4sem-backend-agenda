@@ -98,17 +98,18 @@ def _validar_dia_semana(dia_semana: int) -> int:
     if dia_semana is None:
         raise ErroAoCriarHorario("Dia da semana é obrigatório")
     if not isinstance(dia_semana, int) or dia_semana < 1 or dia_semana > 6:
-        raise ErroAoCriarHorario("Dia da semana deve estar entre 1 (Segunda) e 6 (Sábado)")
+        raise ErroAoCriarHorario(
+            "Dia da semana deve estar entre 1 (Segunda) e 6 (Sábado)"
+        )
     return dia_semana
 
 
 def _aplicar_atualizacoes_parciais(
-    horario: models.Horario,
-    dados_atualizacao: schemas.HorarioUpdate
+    horario: models.Horario, dados_atualizacao: schemas.HorarioUpdate
 ) -> models.Horario:
     """Aplica atualizações parciais ao horário com early returns."""
     update_data = dados_atualizacao.model_dump(exclude_unset=True)
-    
+
     for campo, valor in update_data.items():
         if valor is not None:
             if campo == "numero_aula":
@@ -124,7 +125,10 @@ def _aplicar_atualizacoes_parciais(
 # ENDPOINTS - CREATE
 # ============================================================================
 
-@router.post("/", response_model=schemas.GenericResponse[schemas.Horario], status_code=201)
+
+@router.post(
+    "/", response_model=schemas.GenericResponse[schemas.Horario], status_code=201
+)
 def criar_horario(
     horario: schemas.HorarioCreate,
     usuario_autenticado: models.Usuario = Depends(verificar_token),
@@ -184,6 +188,7 @@ def criar_horario(
 # ENDPOINTS - READ
 # ============================================================================
 
+
 @router.get("/", response_model=schemas.GenericListResponse[schemas.Horario])
 def listar_todos_horarios(
     usuario_autenticado: models.Usuario = Depends(verificar_token),
@@ -205,13 +210,19 @@ def listar_todos_horarios(
     - 200: Lista de horários retornada com sucesso
     - 401: Token ausente ou inválido
     """
-    horarios = db.query(models.Horario).filter(
-        models.Horario.ra == usuario_autenticado.ra
-    ).offset(skip).limit(limit).all()
-    
-    total = db.query(models.Horario).filter(
-        models.Horario.ra == usuario_autenticado.ra
-    ).count()
+    horarios = (
+        db.query(models.Horario)
+        .filter(models.Horario.ra == usuario_autenticado.ra)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    total = (
+        db.query(models.Horario)
+        .filter(models.Horario.ra == usuario_autenticado.ra)
+        .count()
+    )
 
     return schemas.GenericListResponse(
         data=horarios,
@@ -247,7 +258,9 @@ def obter_horario(
     - 404: Horário não encontrado
     - 401: Token ausente ou inválido
     """
-    horario = _validar_horario_pertence_usuario(db, id_horario, str(usuario_autenticado.ra))
+    horario = _validar_horario_pertence_usuario(
+        db, id_horario, str(usuario_autenticado.ra)
+    )
 
     return schemas.GenericResponse(
         data=horario,
@@ -256,7 +269,9 @@ def obter_horario(
     )
 
 
-@router.get("/dia/{dia_semana}", response_model=schemas.GenericListResponse[schemas.Horario])
+@router.get(
+    "/dia/{dia_semana}", response_model=schemas.GenericListResponse[schemas.Horario]
+)
 def listar_horarios_por_dia(
     dia_semana: int,
     usuario_autenticado: models.Usuario = Depends(verificar_token),
@@ -284,15 +299,25 @@ def listar_horarios_por_dia(
     - 200: Lista de horários retornada com sucesso
     - 401: Token ausente ou inválido
     """
-    horarios = db.query(models.Horario).filter(
-        models.Horario.ra == usuario_autenticado.ra,
-        models.Horario.dia_semana == dia_semana
-    ).offset(skip).limit(limit).all()
+    horarios = (
+        db.query(models.Horario)
+        .filter(
+            models.Horario.ra == usuario_autenticado.ra,
+            models.Horario.dia_semana == dia_semana,
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
-    total = db.query(models.Horario).filter(
-        models.Horario.ra == usuario_autenticado.ra,
-        models.Horario.dia_semana == dia_semana
-    ).count()
+    total = (
+        db.query(models.Horario)
+        .filter(
+            models.Horario.ra == usuario_autenticado.ra,
+            models.Horario.dia_semana == dia_semana,
+        )
+        .count()
+    )
 
     return schemas.GenericListResponse(
         data=horarios,
@@ -307,6 +332,7 @@ def listar_horarios_por_dia(
 # ============================================================================
 # ENDPOINTS - UPDATE
 # ============================================================================
+
 
 @router.put("/{id_horario}", response_model=schemas.GenericResponse[schemas.Horario])
 def atualizar_horario(
@@ -337,7 +363,9 @@ def atualizar_horario(
     - 401: Token ausente ou inválido
     """
     try:
-        horario_existente = _validar_horario_pertence_usuario(db, id_horario, str(usuario_autenticado.ra))
+        horario_existente = _validar_horario_pertence_usuario(
+            db, id_horario, str(usuario_autenticado.ra)
+        )
 
         # Verificar se há dados para atualizar
         update_data = horario_update.model_dump(exclude_unset=True)
@@ -345,7 +373,9 @@ def atualizar_horario(
             raise ErroAoAtualizarHorario("Nenhum dado fornecido para atualização")
 
         # Aplicar atualizações
-        horario_atualizado = _aplicar_atualizacoes_parciais(horario_existente, horario_update)
+        horario_atualizado = _aplicar_atualizacoes_parciais(
+            horario_existente, horario_update
+        )
 
         db.commit()
         db.refresh(horario_atualizado)
@@ -394,7 +424,9 @@ def atualizar_parcial_horario(
     - 401: Token ausente ou inválido
     """
     try:
-        horario_existente = _validar_horario_pertence_usuario(db, id_horario, str(usuario_autenticado.ra))
+        horario_existente = _validar_horario_pertence_usuario(
+            db, id_horario, str(usuario_autenticado.ra)
+        )
 
         # Verificar se há dados para atualizar
         update_data = horario_update.model_dump(exclude_unset=True)
@@ -402,7 +434,9 @@ def atualizar_parcial_horario(
             raise ErroAoAtualizarHorario("Nenhum dado fornecido para atualização")
 
         # Aplicar atualizações
-        horario_atualizado = _aplicar_atualizacoes_parciais(horario_existente, horario_update)
+        horario_atualizado = _aplicar_atualizacoes_parciais(
+            horario_existente, horario_update
+        )
 
         db.commit()
         db.refresh(horario_atualizado)
@@ -421,6 +455,7 @@ def atualizar_parcial_horario(
 # ============================================================================
 # ENDPOINTS - DELETE
 # ============================================================================
+
 
 @router.delete("/{id_horario}", response_model=schemas.GenericResponse[dict])
 def deletar_horario(
@@ -448,7 +483,9 @@ def deletar_horario(
     - 404: Horário não encontrado
     - 401: Token ausente ou inválido
     """
-    horario_existente = _validar_horario_pertence_usuario(db, id_horario, str(usuario_autenticado.ra))
+    horario_existente = _validar_horario_pertence_usuario(
+        db, id_horario, str(usuario_autenticado.ra)
+    )
 
     try:
         db.delete(horario_existente)
@@ -459,6 +496,5 @@ def deletar_horario(
             success=True,
             message="Horário deletado com sucesso",
         )
-    except Exception as e:
+    except Exception:
         raise ErroAoDeletarHorario()
-

@@ -192,7 +192,7 @@ class TestObterPerfil:
         """Deve retornar 401 sem token"""
         response = client.get("/api/v1/usuario/me")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestAtualizarUsuario:
@@ -236,7 +236,7 @@ class TestAtualizarUsuario:
         """Deve retornar 401 sem token"""
         response = client.put("/api/v1/usuario/", json={"nome": "Novo Nome"})
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestDeletarUsuario:
@@ -255,7 +255,7 @@ class TestDeletarUsuario:
         """Deve retornar 401 sem token"""
         response = client.delete("/api/v1/usuario/")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestListarPorInstituicao:

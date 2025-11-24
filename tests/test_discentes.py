@@ -62,7 +62,7 @@ class TestCriarDiscente:
             "/api/v1/discentes/", json={"nome": "João", "email": "joao@example.com"}
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestListarDiscentes:
@@ -92,7 +92,7 @@ class TestListarDiscentes:
         """Deve retornar 401 sem token"""
         response = client.get("/api/v1/discentes/")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestObterDiscente:

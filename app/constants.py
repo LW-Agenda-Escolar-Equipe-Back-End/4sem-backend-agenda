@@ -182,10 +182,10 @@ DATABASE_URL_DEFAULT = "sqlite:///./test.db"
 CORS_ORIGINS = ["*"]
 """Lista de origens permitidas para CORS (liberado temporariamente para desenvolvimento)"""
 
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = False
 """Permitir cookies em requisições CORS"""
 
-CORS_ALLOW_METHODS = ["*"]
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 """Métodos HTTP permitidos em CORS"""
 
 CORS_ALLOW_HEADERS = ["*"]

@@ -31,14 +31,24 @@ app = FastAPI(
     description="API para gerenciamento de agenda acadêmica de alunos",
 )
 
-# CORS - Configurado com domínios específicos em produção
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=constants.CORS_ORIGINS,
-    allow_credentials=constants.CORS_ALLOW_CREDENTIALS,
-    allow_methods=constants.CORS_ALLOW_METHODS,
-    allow_headers=constants.CORS_ALLOW_HEADERS,
-)
+# CORS - Permite requisições cross-site com credentials
+if constants.CORS_ALLOW_CREDENTIALS and "*" in constants.CORS_ORIGINS:
+    # Para credentials com origens dinâmicas, usar CORSMiddleware avançado
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",  # Aceita qualquer origem
+        allow_credentials=True,
+        allow_methods=constants.CORS_ALLOW_METHODS,
+        allow_headers=constants.CORS_ALLOW_HEADERS,
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=constants.CORS_ORIGINS,
+        allow_credentials=constants.CORS_ALLOW_CREDENTIALS,
+        allow_methods=constants.CORS_ALLOW_METHODS,
+        allow_headers=constants.CORS_ALLOW_HEADERS,
+    )
 
 
 # ============================================================================

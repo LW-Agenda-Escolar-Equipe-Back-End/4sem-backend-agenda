@@ -153,10 +153,10 @@ COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 COOKIE_HTTPONLY = True
 """Cookie deve estar protegido contra acesso JavaScript"""
 
-COOKIE_SECURE = False
-"""Cookie requer HTTPS (False para desenvolvimento, True em produção)"""
+COOKIE_SECURE = True
+"""Cookie requer HTTPS (OBRIGATÓRIO para refresh_token com SameSite=None)"""
 
-COOKIE_SAMESITE = "lax"
+COOKIE_SAMESITE = "none"
 """Política SameSite do cookie (lax, strict, none)"""
 
 # ============================================================================
@@ -180,10 +180,10 @@ DATABASE_URL_DEFAULT = "sqlite:///./test.db"
 # ============================================================================
 
 CORS_ORIGINS = ["*"]
-"""Lista de origens permitidas para CORS (liberado temporariamente para desenvolvimento)"""
+"""Lista de origens permitidas para CORS (liberado para desenvolvimento)"""
 
-CORS_ALLOW_CREDENTIALS = False
-"""Permitir cookies em requisições CORS"""
+CORS_ALLOW_CREDENTIALS = True
+"""Permitir cookies em requisições CORS (necessário para JWT refresh_token cross-site)"""
 
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 """Métodos HTTP permitidos em CORS"""

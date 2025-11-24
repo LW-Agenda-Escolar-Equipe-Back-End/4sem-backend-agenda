@@ -146,7 +146,7 @@ def login(
         value=refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=7 * 24 * 60 * 60,
         path="/",
     )
@@ -196,7 +196,7 @@ def refresh_token(
         value=novo_refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=7 * 24 * 60 * 60,
         path="/",
     )
